@@ -138,7 +138,7 @@ if show_taverns and not filtered_taverns.empty:
         folium.CircleMarker(
             location=(row["Latitude"], row["Longitude"]),
             radius=5,
-            color="blue",
+            color="purple",
             fill=True,
             fill_opacity=0.6,
             tooltip=f"{row['DBA Name']}"
@@ -152,10 +152,11 @@ if show_farmers and not filtered_farmers.empty:
         tooltip = f"{row['Market Name']}<br>{row['Address']}"
         if row["DCASE"]:
             tooltip += "<br><b>Supported by DCASE</b>"
+            color = "light blue"
         folium.CircleMarker(
             location=(row["Latitude"], row["Longitude"]),
             radius=5,
-            color="purple",
+            color="dark blue",
             fill=True,
             fill_opacity=0.6,
             tooltip=tooltip
