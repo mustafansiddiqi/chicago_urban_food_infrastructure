@@ -76,11 +76,11 @@ show_farmers = st.checkbox("Show Farmers Markets", value=True)
 # FILTERS - Neighborhood (shared)
 with st.sidebar:
     all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
-    selected_neighborhoods = st.multiselect("Filter by Neighborhood", all_neighborhoods, default=all_neighborhoods)
+    selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default=all_neighborhoods)
     # FILTERS - Gardens
     if show_gardens:
         garden_options = ["Yes", "N/A"]
-        selected_food = st.multiselect("Filter Gardens by Food Production", garden_options, default=garden_options)
+        selected_food = st.multiselect("Food Producing Gardens", garden_options, default=garden_options)
         filtered_cuamps = cuamps[cuamps["Food Producing"].isin(selected_food) & cuamps["neighborhood"].isin(selected_neighborhoods)]
     else:
         filtered_cuamps = pd.DataFrame(columns=cuamps.columns)
@@ -88,7 +88,7 @@ with st.sidebar:
     # FILTERS - Ecosystem
     if show_ecosystem:
         all_tifs = sorted(ecosystem["TIF District"].dropna().unique())
-        selected_tifs = st.multiselect("Filter Ecosystem Sites by TIF District", all_tifs, default=all_tifs)
+        selected_tifs = st.multiselect("TIF District", all_tifs, default=all_tifs)
         filtered_ecosystem = ecosystem[ecosystem["TIF District"].isin(selected_tifs)]
     else:
         filtered_ecosystem = pd.DataFrame(columns=ecosystem.columns)
@@ -96,7 +96,7 @@ with st.sidebar:
     # FILTERS - Taverns
     if show_taverns:
         all_names = sorted(taverns["DBA Name"].dropna().unique())
-        selected_names = st.multiselect("Filter Taverns by Name", all_names, default=all_names[:50])  # Limit initial load
+        selected_names = st.multiselect("Taverns", all_names, default=all_names[:50])  # Limit initial load
         filtered_taverns = taverns[taverns["DBA Name"].isin(selected_names)]
     else:
         filtered_taverns = pd.DataFrame(columns=taverns.columns)
@@ -105,7 +105,7 @@ with st.sidebar:
     if show_farmers:
         dcase_options = ["Supported by DCASE", "Not Supported"]
         farmers['Support'] = np.where(farmers['DCASE'], "Supported by DCASE", "Not Supported")
-        selected_support = st.multiselect("Filter Farmers Markets by Support", dcase_options, default=dcase_options)
+        selected_support = st.multiselect("Farmers Markets Supported by DCASE", dcase_options, default=dcase_options)
         filtered_farmers = farmers[farmers['Support'].isin(selected_support)]
     else:
         filtered_farmers = pd.DataFrame(columns=farmers.columns)
