@@ -42,11 +42,26 @@ st.title("Chicago Urban Agriculture & Food Ecosystem Map")
 st.subheader("An initiative from the office of Mayor Brandon Johnson")
 st.set_page_config(layout="wide")
 
+st.markdown("""
+    <style>
+        .center-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .block-container {
+            padding-top: 2rem;
+        }
+    </style>
+    <div class="center-container">
+""", unsafe_allow_html=True)
+
 # LAYER CHECKBOXES
 show_gardens = st.checkbox("Community Gardens", value=True)
 show_ecosystem = st.checkbox("Ecosystem Sites", value=True)
 show_taverns = st.checkbox("Taverns", value=True)
-show_farmers = st.checkbox("Farmers Markets", value=True)
+show_farmers = st.checkbox("Show Farmers Markets", value=True)
 
 # FILTERS - Neighborhood (shared)
 with st.sidebar:
@@ -176,3 +191,5 @@ folium.LayerControl(collapsed=False).add_to(base_map)
 
 # Render the map in Streamlit
 st_data = st_folium(base_map, width=800, height=600)
+
+st.markdown("</div>", unsafe_allow_html=True)
