@@ -74,18 +74,18 @@ with st.sidebar:
         filtered_taverns = taverns[taverns["DBA Name"].isin(selected_names)]
     else:
         filtered_taverns = pd.DataFrame(columns=taverns.columns)
-
-show_farmers = st.checkbox("Show Farmers Markets", value=True)
-
-if show_farmers:
-    dcase_options = ["Supported by DCASE", "Not Supported"]
-    farmers['Support'] = np.where(farmers['DCASE'], "Supported by DCASE", "Not Supported")
-    selected_support = st.multiselect("Filter Farmers Markets by Support", dcase_options, default=dcase_options)
-    filtered_farmers = farmers[farmers['Support'].isin(selected_support)]
-else:
-    filtered_farmers = pd.DataFrame(columns=farmers.columns)
-map_center = [41.8781, -87.6298]
-base_map = folium.Map(location=map_center, zoom_start=11)
+    
+    # FILTERS - Farmers Market DCASE
+    show_farmers = st.checkbox("Show Farmers Markets", value=True)
+    if show_farmers:
+        dcase_options = ["Supported by DCASE", "Not Supported"]
+        farmers['Support'] = np.where(farmers['DCASE'], "Supported by DCASE", "Not Supported")
+        selected_support = st.multiselect("Filter Farmers Markets by Support", dcase_options, default=dcase_options)
+        filtered_farmers = farmers[farmers['Support'].isin(selected_support)]
+    else:
+        filtered_farmers = pd.DataFrame(columns=farmers.columns)
+        map_center = [41.8781, -87.6298]
+        base_map = folium.Map(location=map_center, zoom_start=11)
 
 # Add neighborhoods as GeoJSON
 folium.GeoJson(
