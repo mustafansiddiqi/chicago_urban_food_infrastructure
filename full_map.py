@@ -40,7 +40,6 @@ show_ecosystem = st.checkbox("Show Ecosystem Sites", value=True)
 show_taverns = st.checkbox("Show Taverns", value=True)
 
 # FILTERS - Neighborhood (shared)
-with 
 all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
 selected_neighborhoods = st.multiselect("Filter by Neighborhood", all_neighborhoods, default=all_neighborhoods)
 
