@@ -38,23 +38,33 @@ farmers['DCASE'] = farmers['DCASE'].astype(bool)
 cuamps['Food Producing'] = np.where(cuamps["food_producing"] == True, 'Yes', 'N/A')
 
 # STREAMLIT INTERFACE
-st.title("Chicago Urban Agriculture & Food Ecosystem Map")
-st.subheader("An initiative from the office of Mayor Brandon Johnson")
-st.set_page_config(layout="wide")
+with st.container():
+    st.markdown('<div class="centered">', unsafe_allow_html=True)
+    st.title("Chicago Urban Agriculture & Food Ecosystem Map")
+    st.subheader("An initiative from the office of Mayor Brandon Johnson")
+    st.markdown('</div>', unsafe_allow_html=True)
 
+st.set_page_config(layout="wide")
 st.markdown("""
     <style>
-        .center-container {
+        .centered {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            text-align: center;
         }
+
         .block-container {
-            padding-top: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        label {
+            display: block;
+            text-align: center;
         }
     </style>
-    <div class="center-container">
 """, unsafe_allow_html=True)
 
 # LAYER CHECKBOXES
@@ -189,7 +199,7 @@ if show_farmers and not filtered_farmers.empty:
 # Layer toggle
 folium.LayerControl(collapsed=False).add_to(base_map)
 
-# Render the map in Streamlit
-st_data = st_folium(base_map, width=800, height=600)
-
-st.markdown("</div>", unsafe_allow_html=True)
+with st.container():
+    st.markdown('<div class="centered">', unsafe_allow_html=True)
+    st_data = st_folium(base_map, width=800, height=600)
+    st.markdown('</div>', unsafe_allow_html=True)
