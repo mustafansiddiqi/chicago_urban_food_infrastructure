@@ -84,8 +84,9 @@ with st.sidebar:
         filtered_farmers = farmers[farmers['Support'].isin(selected_support)]
     else:
         filtered_farmers = pd.DataFrame(columns=farmers.columns)
-        map_center = [41.8781, -87.6298]
-        base_map = folium.Map(location=map_center, zoom_start=11)
+
+map_center = [41.8781, -87.6298]
+base_map = folium.Map(location=map_center, zoom_start=11)
 
 # Add neighborhoods as GeoJSON
 folium.GeoJson(
