@@ -150,17 +150,25 @@ if show_farmers and not filtered_farmers.empty:
     farmer_layer = folium.FeatureGroup(name="Farmers Markets", show=True)
     for _, row in filtered_farmers.iterrows():
         tooltip = f"{row['Market Name']}<br>{row['Address']}"
-        if row["DCASE"]:
+        
+        # Set default color
+        color = "orange"
+        
+        # Check if DCASE is True (boolean, not string)
+        if bool(row["DCASE"]) is True:
             tooltip += "<br><b>Supported by DCASE</b>"
-            color = "light blue"
+            color = "yellow"
+        
         folium.CircleMarker(
             location=(row["Latitude"], row["Longitude"]),
             radius=5,
-            color="dark blue",
+            color=color,
             fill=True,
+            fill_color=color,
             fill_opacity=0.6,
             tooltip=tooltip
         ).add_to(farmer_layer)
+    
     farmer_layer.add_to(base_map)
 
 # Layer toggle
