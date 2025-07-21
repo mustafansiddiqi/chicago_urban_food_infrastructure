@@ -46,7 +46,7 @@ st.set_page_config(layout="wide")
 show_gardens = st.checkbox("Community Gardens", value=True)
 show_ecosystem = st.checkbox("Ecosystem Sites", value=True)
 show_taverns = st.checkbox("Taverns", value=True)
-show_farmers = st.checkbox("Show Farmers Markets", value=True)
+show_farmers = st.checkbox("Farmers Markets", value=True)
 
 # FILTERS - Neighborhood (shared)
 with st.sidebar:
