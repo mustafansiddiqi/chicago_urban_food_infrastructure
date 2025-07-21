@@ -11,6 +11,7 @@ SHAPEFILE_PATH = r"neighborhoods_shapefile.shp"
 CUAMPS_CSV_PATH = r"cuamp_gardens geocoded.csv"
 FOOD_TAVERNS_CSV_PATH = r"Food_Tavern_PackGoods_Current.csv"
 FOOD_ECOSYSTEM_CSV_PATH = r"Food_Ecosystem_Data_2025.csv"
+FARMERS_MARKETS_CSV_PATH = r"Farmers_Markets.csv"
 
 # LOAD DATA
 file = gpd.read_file(SHAPEFILE_PATH)
@@ -19,12 +20,19 @@ file = file.rename(columns={'neighborho': 'neighborhood'})
 cuamps = pd.read_csv(CUAMPS_CSV_PATH)
 taverns = pd.read_csv(FOOD_TAVERNS_CSV_PATH)
 ecosystem = pd.read_csv(FOOD_ECOSYSTEM_CSV_PATH)
+farmers = pd.read_csv(FARMERS_MARKETS_CSV_PATH)
 
 # CLEAN COORDINATES
 for df in [cuamps, taverns, ecosystem]:
     df['Latitude'] = pd.to_numeric(df['Latitude'], errors='coerce')
     df['Longitude'] = pd.to_numeric(df['Longitude'], errors='coerce')
     df.dropna(subset=['Latitude', 'Longitude'], inplace=True)
+
+farmers['Latitude'] = pd.to_numeric(farmers['Latitude'], errors='coerce')
+farmers['Longitude'] = pd.to_numeric(farmers['Longitude'], errors='coerce')
+farmers.dropna(subset=['Latitude', 'Longitude'], inplace=True)
+
+farmers['DCASE'] = farmers['DCASE'].astype(bool)
 
 # EXTRA COLUMNS
 cuamps['Food Producing'] = np.where(cuamps["food_producing"] == True, 'Yes', 'N/A')
@@ -67,6 +75,15 @@ with st.sidebar:
     else:
         filtered_taverns = pd.DataFrame(columns=taverns.columns)
 
+show_farmers = st.checkbox("Show Farmers Markets", value=True)
+
+if show_farmers:
+    dcase_options = ["Supported by DCASE", "Not Supported"]
+    farmers['Support'] = np.where(farmers['DCASE'], "Supported by DCASE", "Not Supported")
+    selected_support = st.multiselect("Filter Farmers Markets by Support", dcase_options, default=dcase_options)
+    filtered_farmers = farmers[farmers['Support'].isin(selected_support)]
+else:
+    filtered_farmers = pd.DataFrame(columns=farmers.columns)
 map_center = [41.8781, -87.6298]
 base_map = folium.Map(location=map_center, zoom_start=11)
 
@@ -126,6 +143,23 @@ if show_taverns and not filtered_taverns.empty:
             tooltip=f"{row['DBA Name']}"
         ).add_to(tavern_layer)
     tavern_layer.add_to(base_map)
+
+#Farmers Market Layer
+if show_farmers and not filtered_farmers.empty:
+    farmer_layer = folium.FeatureGroup(name="Farmers Markets", show=True)
+    for _, row in filtered_farmers.iterrows():
+        tooltip = f"{row['Market Name']}<br>{row['Address']}"
+        if row["DCASE"]:
+            tooltip += "<br><b>Supported by DCASE</b>"
+        folium.CircleMarker(
+            location=(row["Latitude"], row["Longitude"]),
+            radius=5,
+            color="purple",
+            fill=True,
+            fill_opacity=0.6,
+            tooltip=tooltip
+        ).add_to(farmer_layer)
+    farmer_layer.add_to(base_map)
 
 # Layer toggle
 folium.LayerControl(collapsed=False).add_to(base_map)
