@@ -32,6 +32,7 @@ cuamps['Food Producing'] = np.where(cuamps["food_producing"] == True, 'Yes', 'N/
 # STREAMLIT INTERFACE
 st.title("Chicago Urban Agriculture & Food Ecosystem Map")
 st.subheader("An initiative from the office of Mayor Brandon Johnson")
+st.set_page_config(layout="wide")
 
 # LAYER CHECKBOXES
 show_gardens = st.checkbox("Show Community Gardens", value=True)
@@ -39,6 +40,7 @@ show_ecosystem = st.checkbox("Show Ecosystem Sites", value=True)
 show_taverns = st.checkbox("Show Taverns", value=True)
 
 # FILTERS - Neighborhood (shared)
+with 
 all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
 selected_neighborhoods = st.multiselect("Filter by Neighborhood", all_neighborhoods, default=all_neighborhoods)
 
