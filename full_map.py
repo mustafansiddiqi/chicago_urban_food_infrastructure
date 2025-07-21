@@ -7,10 +7,10 @@ import streamlit as st
 from streamlit_folium import st_folium
 
 # FILE PATHS
-SHAPEFILE_PATH = r"C:\Users\488325\Python\neighborhoods_shapefile.shp"
-CUAMPS_CSV_PATH = r"C:\Users\488325\Python\cuamp_gardens geocoded.csv"
-FOOD_TAVERNS_CSV_PATH = r"C:\Users\488325\Python\Food_Tavern_PackGoods_Current.csv"
-FOOD_ECOSYSTEM_CSV_PATH = r"C:\Users\488325\Python\Food_Ecosystem_Data_2025.csv"
+SHAPEFILE_PATH = r"neighborhoods_shapefile.shp"
+CUAMPS_CSV_PATH = r"cuamp_gardens geocoded.csv"
+FOOD_TAVERNS_CSV_PATH = r"Food_Tavern_PackGoods_Current.csv"
+FOOD_ECOSYSTEM_CSV_PATH = r"Food_Ecosystem_Data_2025.csv"
 
 # LOAD DATA
 file = gpd.read_file(SHAPEFILE_PATH)
