@@ -46,6 +46,7 @@ st.set_page_config(layout="wide")
 show_gardens = st.checkbox("Community Gardens", value=True)
 show_ecosystem = st.checkbox("Ecosystem Sites", value=True)
 show_taverns = st.checkbox("Taverns", value=True)
+show_farmers = st.checkbox("Show Farmers Markets", value=True)
 
 # FILTERS - Neighborhood (shared)
 with st.sidebar:
@@ -76,7 +77,6 @@ with st.sidebar:
         filtered_taverns = pd.DataFrame(columns=taverns.columns)
     
     # FILTERS - Farmers Market DCASE
-    show_farmers = st.checkbox("Show Farmers Markets", value=True)
     if show_farmers:
         dcase_options = ["Supported by DCASE", "Not Supported"]
         farmers['Support'] = np.where(farmers['DCASE'], "Supported by DCASE", "Not Supported")
