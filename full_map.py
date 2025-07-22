@@ -28,6 +28,14 @@ st.markdown("""
             font-size: 1.2em;
             margin-bottom: 1em;
         }
+        .metrics-row {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 1em;
+        }
+        .metric-container {
+            text-align: center;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -42,14 +50,22 @@ FOOD_TAVERNS_CSV_PATH = "Food_Tavern_PackGoods_Current.csv"
 FOOD_ECOSYSTEM_CSV_PATH = "Food_Ecosystem_Data_2025.csv"
 FARMERS_MARKETS_CSV_PATH = "Farmers_Markets.csv"
 
-# LOAD DATA
-file = gpd.read_file(SHAPEFILE_PATH)
-file = file.rename(columns={'neighborho': 'neighborhood'})
+# CACHED DATA LOADERS
+@st.cache_resource
+def load_shapefile():
+    return gpd.read_file(SHAPEFILE_PATH).rename(columns={'neighborho': 'neighborhood'})
 
-cuamps = pd.read_csv(CUAMPS_CSV_PATH)
-taverns = pd.read_csv(FOOD_TAVERNS_CSV_PATH)
-ecosystem = pd.read_csv(FOOD_ECOSYSTEM_CSV_PATH)
-farmers = pd.read_csv(FARMERS_MARKETS_CSV_PATH)
+@st.cache_data
+def load_csv_data():
+    cuamps = pd.read_csv(CUAMPS_CSV_PATH)
+    taverns = pd.read_csv(FOOD_TAVERNS_CSV_PATH)
+    ecosystem = pd.read_csv(FOOD_ECOSYSTEM_CSV_PATH)
+    farmers = pd.read_csv(FARMERS_MARKETS_CSV_PATH)
+    return cuamps, taverns, ecosystem, farmers
+
+# LOAD DATA
+file = load_shapefile()
+cuamps, taverns, ecosystem, farmers = load_csv_data()
 
 # CLEAN COORDINATES
 for df in [cuamps, taverns, ecosystem]:
@@ -73,10 +89,10 @@ with col1:
         all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
         selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default=all_neighborhoods)
 
-        show_gardens = st.checkbox("Community Gardens", value=True)
-        show_ecosystem = st.checkbox("Ecosystem Sites", value=True)
-        show_taverns = st.checkbox("Taverns", value=True)
-        show_farmers = st.checkbox("Farmers Markets", value=True)
+        show_gardens = st.checkbox("Community Gardens", value=False)
+        show_ecosystem = st.checkbox("Ecosystem Sites", value=False)
+        show_taverns = st.checkbox("Taverns", value=False)
+        show_farmers = st.checkbox("Farmers Markets", value=False)
 
         if show_gardens:
             selected_food = st.multiselect("Food Producing Gardens", ["Yes", "N/A"], default=["Yes", "N/A"])
@@ -93,10 +109,8 @@ with col1:
 
         if show_taverns:
             all_names = sorted(taverns["DBA Name"].dropna().unique())
-            search_name = st.text_input("Search Tavern Name")
-            filtered_taverns = taverns[taverns["DBA Name"].isin(all_names)]
-            if search_name:
-                filtered_taverns = filtered_taverns[filtered_taverns["DBA Name"].str.contains(search_name, case=False)]
+            selected_names = st.multiselect("Taverns", all_names, default=all_names[:100])
+            filtered_taverns = taverns[taverns["DBA Name"].isin(selected_names)]
         else:
             filtered_taverns = pd.DataFrame(columns=taverns.columns)
 
@@ -106,13 +120,15 @@ with col1:
         else:
             filtered_farmers = pd.DataFrame(columns=farmers.columns)
 
-    with st.expander("📈 Summary Stats"):
-        st.metric("Total Gardens", len(filtered_cuamps))
-        st.metric("Ecosystem Sites", len(filtered_ecosystem))
-        st.metric("Taverns", len(filtered_taverns))
-        st.metric("Farmers Markets", len(filtered_farmers))
-
 with col2:
+    # HORIZONTAL SUMMARY STATS
+    st.markdown("<div class='metrics-row'>" +
+                f"<div class='metric-container'><h4>Total Gardens</h4><p>{len(filtered_cuamps)}</p></div>" +
+                f"<div class='metric-container'><h4>Ecosystem Sites</h4><p>{len(filtered_ecosystem)}</p></div>" +
+                f"<div class='metric-container'><h4>Taverns</h4><p>{len(filtered_taverns)}</p></div>" +
+                f"<div class='metric-container'><h4>Farmers Markets</h4><p>{len(filtered_farmers)}</p></div>" +
+                "</div>", unsafe_allow_html=True)
+
     # BASE MAP
     map_center = [41.8781, -87.6298]
     base_map = folium.Map(location=map_center, zoom_start=11, tiles="CartoDB positron")
