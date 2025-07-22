@@ -103,7 +103,7 @@ with st.sidebar:
 
     if show_gardens:
         selected_food = st.multiselect("Food Producing Gardens", ["Yes", "N/A"], default=["Yes", "N/A"])
-        filtered_cuamps = cuamps[cuamps["Food Producing"].isin(selected_food) & cuamps["neighborhood"].isin(selected_neighborhoods)]
+        filtered_cuamps = cuamps[cuamps["Food Producing"].isin(selected_food)]
     else:
         filtered_cuamps = pd.DataFrame(columns=cuamps.columns)
 
@@ -165,6 +165,24 @@ with col2:
         ).add_to(base_map)
 
     # GARDENS
+    # Ward centroid labels from CUAMPS
+    if show_gardens and not filtered_cuamps.empty and 'ward' in filtered_cuamps.columns:
+        ward_centroids = (
+            filtered_cuamps
+            .groupby('ward')[['Latitude', 'Longitude']]
+            .mean()
+            .dropna()
+            .reset_index()
+        )
+
+        for _, row in ward_centroids.iterrows():
+            folium.map.Marker(
+                [row['Latitude'], row['Longitude']],
+                icon=folium.DivIcon(
+                    html=f"<div style='font-size:10pt; font-weight:bold; color:black'>Ward {int(row['ward'])}</div>"
+                )
+            ).add_to(base_map)
+
     if show_gardens and not filtered_cuamps.empty:
         cluster = MarkerCluster(name="Community Gardens").add_to(base_map)
         for _, row in filtered_cuamps.iterrows():
