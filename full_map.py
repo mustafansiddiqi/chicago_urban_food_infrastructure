@@ -100,6 +100,7 @@ with st.sidebar:
     show_ecosystem = st.checkbox("Ecosystem Sites", value=False)
     show_taverns = st.checkbox("Taverns", value=False)
     show_farmers = st.checkbox("Farmers Markets", value=False)
+    show_wards = st.checkbox("Ward Numbers", value = False)
 
     if show_gardens:
         selected_food = st.multiselect("Food Producing Gardens", ["Yes", "N/A"], default=["Yes", "N/A"])
@@ -166,9 +167,9 @@ with col2:
 
     # GARDENS
     # Ward centroid labels from CUAMPS
-    if show_gardens and not filtered_cuamps.empty and 'ward' in filtered_cuamps.columns:
+    if show_wards:
         ward_centroids = (
-            filtered_cuamps
+            cuamps
             .groupby('ward')[['Latitude', 'Longitude']]
             .mean()
             .dropna()
@@ -179,7 +180,7 @@ with col2:
             folium.map.Marker(
                 [row['Latitude'], row['Longitude']],
                 icon=folium.DivIcon(
-                    html=f"<div style='font-size:10pt; font-weight:bold; color:black'>Ward {int(row['ward'])}</div>"
+                    html=f"<div style='font-size:8pt; font-weight:bold; color:black'>Ward {int(row['ward'])}</div>"
                 )
             ).add_to(base_map)
 
