@@ -31,10 +31,19 @@ st.markdown("""
         .metrics-row {
             display: flex;
             justify-content: space-around;
-            margin-bottom: 1em;
+            margin: 1em 0 2em 0;
         }
         .metric-container {
             text-align: center;
+        }
+        .metric-container h4 {
+            font-size: 1.5em;
+            margin-bottom: 0.2em;
+        }
+        .metric-container p {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 0;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -81,11 +90,10 @@ farmers['DCASE'] = farmers['DCASE'].astype(bool)
 cuamps['Food Producing'] = np.where(cuamps["food_producing"] == True, 'Yes', 'N/A')
 farmers['Support'] = np.where(farmers['DCASE'], "Supported by DCASE", "Not Supported")
 
-# LAYOUT COLUMNS
-col1, col2 = st.columns([1, 3])
-
-with col1:
-    with st.expander("🔍 Filters"):
+# FILTERS
+with st.sidebar:
+    with st.expander("### 🔍 Filters", expanded=True):
+        st.markdown("### 🔍 Filters")
         all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
         selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default=all_neighborhoods)
 
@@ -120,15 +128,18 @@ with col1:
         else:
             filtered_farmers = pd.DataFrame(columns=farmers.columns)
 
-with col2:
-    # HORIZONTAL SUMMARY STATS
-    st.markdown("<div class='metrics-row'>" +
-                f"<div class='metric-container'><h4>Total Gardens</h4><p>{len(filtered_cuamps)}</p></div>" +
-                f"<div class='metric-container'><h4>Ecosystem Sites</h4><p>{len(filtered_ecosystem)}</p></div>" +
-                f"<div class='metric-container'><h4>Taverns</h4><p>{len(filtered_taverns)}</p></div>" +
-                f"<div class='metric-container'><h4>Farmers Markets</h4><p>{len(filtered_farmers)}</p></div>" +
-                "</div>", unsafe_allow_html=True)
+# STATS CONTAINER
+st.markdown("<div class='metrics-row'>" +
+    f"<div class='metric-container'><h4>Total Gardens</h4><p>{len(filtered_cuamps)}</p></div>" +
+    f"<div class='metric-container'><h4>Ecosystem Sites</h4><p>{len(filtered_ecosystem)}</p></div>" +
+    f"<div class='metric-container'><h4>Taverns</h4><p>{len(filtered_taverns)}</p></div>" +
+    f"<div class='metric-container'><h4>Farmers Markets</h4><p>{len(filtered_farmers)}</p></div>" +
+    "</div>", unsafe_allow_html=True)
 
+# LAYOUT COLUMNS
+col1, col2 = st.columns([1, 3])
+
+with col2:
     # BASE MAP
     map_center = [41.8781, -87.6298]
     base_map = folium.Map(location=map_center, zoom_start=11, tiles="CartoDB positron")
