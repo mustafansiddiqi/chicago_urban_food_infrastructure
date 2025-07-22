@@ -94,13 +94,14 @@ farmers['Support'] = np.where(farmers['DCASE'], "Supported by DCASE", "Not Suppo
 with st.sidebar:
     st.markdown("### 🔍 Filters")
     all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
-    selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default=all_neighborhoods)
 
+    selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default=None)
+    
+    show_wards = st.checkbox("Ward Numbers", value = False)
     show_gardens = st.checkbox("Community Gardens", value=False)
     show_ecosystem = st.checkbox("Ecosystem Sites", value=False)
     show_taverns = st.checkbox("Taverns", value=False)
     show_farmers = st.checkbox("Farmers Markets", value=False)
-    show_wards = st.checkbox("Ward Numbers", value = False)
 
     if show_gardens:
         selected_food = st.multiselect("Food Producing Gardens", ["Yes", "N/A"], default=["Yes", "N/A"])
