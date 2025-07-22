@@ -92,41 +92,40 @@ farmers['Support'] = np.where(farmers['DCASE'], "Supported by DCASE", "Not Suppo
 
 # FILTERS
 with st.sidebar:
-    with st.expander("### 🔍 Filters", expanded=True):
-        st.markdown("### 🔍 Filters")
-        all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
-        selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default=all_neighborhoods)
+    st.markdown("### 🔍 Filters")
+    all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
+    selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default=all_neighborhoods)
 
-        show_gardens = st.checkbox("Community Gardens", value=False)
-        show_ecosystem = st.checkbox("Ecosystem Sites", value=False)
-        show_taverns = st.checkbox("Taverns", value=False)
-        show_farmers = st.checkbox("Farmers Markets", value=False)
+    show_gardens = st.checkbox("Community Gardens", value=False)
+    show_ecosystem = st.checkbox("Ecosystem Sites", value=False)
+    show_taverns = st.checkbox("Taverns", value=False)
+    show_farmers = st.checkbox("Farmers Markets", value=False)
 
-        if show_gardens:
-            selected_food = st.multiselect("Food Producing Gardens", ["Yes", "N/A"], default=["Yes", "N/A"])
-            filtered_cuamps = cuamps[cuamps["Food Producing"].isin(selected_food) & cuamps["neighborhood"].isin(selected_neighborhoods)]
-        else:
-            filtered_cuamps = pd.DataFrame(columns=cuamps.columns)
+    if show_gardens:
+        selected_food = st.multiselect("Food Producing Gardens", ["Yes", "N/A"], default=["Yes", "N/A"])
+        filtered_cuamps = cuamps[cuamps["Food Producing"].isin(selected_food) & cuamps["neighborhood"].isin(selected_neighborhoods)]
+    else:
+        filtered_cuamps = pd.DataFrame(columns=cuamps.columns)
 
-        if show_ecosystem:
-            all_tifs = sorted(ecosystem["TIF District"].dropna().unique())
-            selected_tifs = st.multiselect("TIF District", all_tifs, default=all_tifs)
-            filtered_ecosystem = ecosystem[ecosystem["TIF District"].isin(selected_tifs)]
-        else:
-            filtered_ecosystem = pd.DataFrame(columns=ecosystem.columns)
+    if show_ecosystem:
+        all_tifs = sorted(ecosystem["TIF District"].dropna().unique())
+        selected_tifs = st.multiselect("TIF District", all_tifs, default=all_tifs)
+        filtered_ecosystem = ecosystem[ecosystem["TIF District"].isin(selected_tifs)]
+    else:
+        filtered_ecosystem = pd.DataFrame(columns=ecosystem.columns)
 
-        if show_taverns:
-            all_names = sorted(taverns["DBA Name"].dropna().unique())
-            selected_names = st.multiselect("Taverns", all_names, default=all_names[:100])
-            filtered_taverns = taverns[taverns["DBA Name"].isin(selected_names)]
-        else:
-            filtered_taverns = pd.DataFrame(columns=taverns.columns)
+    if show_taverns:
+        all_names = sorted(taverns["DBA Name"].dropna().unique())
+        selected_names = st.multiselect("Taverns", all_names, default=all_names[:100])
+        filtered_taverns = taverns[taverns["DBA Name"].isin(selected_names)]
+    else:
+        filtered_taverns = pd.DataFrame(columns=taverns.columns)
 
-        if show_farmers:
-            selected_support = st.multiselect("Farmers Markets Supported by DCASE", ["Supported by DCASE", "Not Supported"], default=["Supported by DCASE", "Not Supported"])
-            filtered_farmers = farmers[farmers['Support'].isin(selected_support)]
-        else:
-            filtered_farmers = pd.DataFrame(columns=farmers.columns)
+    if show_farmers:
+        selected_support = st.multiselect("Farmers Markets Supported by DCASE", ["Supported by DCASE", "Not Supported"], default=["Supported by DCASE", "Not Supported"])
+        filtered_farmers = farmers[farmers['Support'].isin(selected_support)]
+    else:
+        filtered_farmers = pd.DataFrame(columns=farmers.columns)
 
 # STATS CONTAINER
 st.markdown("<div class='metrics-row'>" +
@@ -144,14 +143,21 @@ with col2:
     map_center = [41.8781, -87.6298]
     base_map = folium.Map(location=map_center, zoom_start=11, tiles="CartoDB positron")
 
-    # NEIGHBORHOODS
-    folium.GeoJson(
-        file,
-        name="Neighborhoods",
-        tooltip=folium.GeoJsonTooltip(fields=["neighborhood"]),
-    ).add_to(base_map)
-
+    # HIGHLIGHT SELECTED NEIGHBORHOODS
     for _, row in file.iterrows():
+        opacity = 0.6 if row['neighborhood'] in selected_neighborhoods else 0.2
+        folium.GeoJson(
+            row['geometry'],
+            name=row['neighborhood'],
+            style_function=lambda feature, o=opacity: {
+                'fillColor': 'grey',
+                'color': 'grey',
+                'weight': 1.25,
+                'fillOpacity': o
+            },
+            tooltip=folium.Tooltip(row['neighborhood'])
+        ).add_to(base_map)
+
         centroid = row["geometry"].centroid
         folium.map.Marker(
             [centroid.y, centroid.x],
