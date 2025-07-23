@@ -21,7 +21,7 @@ st.markdown(
     <style>
     .logo-container {
         position: absolute;
-        top: 96px;
+        top: 2rem;
         right: 1.5rem;
         z-index: 100;
     }
