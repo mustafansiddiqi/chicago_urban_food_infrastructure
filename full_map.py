@@ -233,7 +233,7 @@ with col2:
     if show_ecosystem and not filtered_ecosystem.empty:
         cluster = MarkerCluster(name="Ecosystem Sites").add_to(base_map)
         for _, row in filtered_ecosystem.iterrows():
-            tooltip = f"{row['Primary']}<br></b> Address: {row.get('Project Address', 'Address N/A')}"
+            tooltip = f"{row['Primary']}</b><br><b>Address:</b> {row.get('Project Address', 'Address N/A')}"
             folium.CircleMarker(
                 location=(row["Latitude"], row["Longitude"]),
                 radius=5,
@@ -247,7 +247,7 @@ with col2:
     if show_taverns and not filtered_taverns.empty:
         cluster = MarkerCluster(name="Taverns").add_to(base_map)
         for _, row in filtered_taverns.iterrows():
-            tooltip = f"{row['DBA Name']} <br></b> Address:  {row.get('Address', 'Address N/A')}"
+            tooltip = f"{row['DBA Name']} </b><br><b>Address:</b>  {row.get('Address', 'Address N/A')}"
             folium.CircleMarker(
                 location=(row["Latitude"], row["Longitude"]),
                 radius=5,
@@ -261,7 +261,7 @@ with col2:
     if show_farmers and not filtered_farmers.empty:
         cluster = MarkerCluster(name="Farmers Markets").add_to(base_map)
         for _, row in filtered_farmers.iterrows():
-            tooltip = f"{row['Market Name']} <br></b> Address:  {row.get('Address', 'Address N/A')}"
+            tooltip = f"{row['Market Name']} </b><br><b>Address:</b>  {row.get('Address', 'Address N/A')}"
             color = "yellow" if row["DCASE"] else "orange"
             popup_text = f"<b>{row['Market Name']}</b><br>{row['Address']}"
             if row["DCASE"]:
