@@ -1,3 +1,4 @@
+from pickle import TRUE
 import geopandas as gpd
 import pandas as pd
 import folium
@@ -132,7 +133,7 @@ with st.sidebar:
     st.markdown("### 🔍 Filters")
     all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
     selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods)
-    show_wards = st.checkbox("Show Ward Labels", value=False)
+    show_wards = st.checkbox("Ward Labels", value=False)
 
     show_gardens = st.checkbox("Community Gardens", value=False)
     show_ecosystem = st.checkbox("Ecosystem Sites", value=False)
@@ -192,11 +193,12 @@ with col2:
             tooltip=folium.Tooltip(row['neighborhood']) if row['neighborhood'] in selected_neighborhoods else None
         ).add_to(base_map)
 
-        centroid = row["geometry"].centroid
-        folium.map.Marker(
-            [centroid.y, centroid.x],
-            icon=folium.DivIcon(html=f"<div style='font-size:8pt; color:black'>{row['neighborhood']}</div>")
-        ).add_to(base_map)
+        if row['neighborhood'] in selected_neighborhoods:
+            centroid = row["geometry"].centroid
+            folium.map.Marker(
+                [centroid.y, centroid.x],
+                icon=folium.DivIcon(html=f"<div style='font-size:8pt; color:black'>{row['neighborhood']}</div>")
+            ).add_to(base_map)
 
     if show_wards and 'ward' in cuamps_joined.columns:
         ward_centroids = (
@@ -274,5 +276,5 @@ with col2:
                 popup=folium.Popup(popup_text, max_width=300),
                 tooltip=tooltip
             ).add_to(cluster)
-    folium.LayerControl(collapsed=False).add_to(base_map)
+
     st_folium(base_map, width=1000, height=700)
