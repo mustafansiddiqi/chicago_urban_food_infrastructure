@@ -13,7 +13,7 @@ from folium.plugins import MarkerCluster
 # PAGE CONFIG
 st.set_page_config(layout="wide")
 
-logo = Image.open(r"C:\Users\488325\Python\chicago_logo.png")
+logo = Image.open(r"chicago_logo.png")
 
 #IMAGE
 st.markdown(
