@@ -194,7 +194,8 @@ with col2:
                 color="green",
                 fill=True,
                 fill_opacity=0.6,
-                popup=folium.Popup(f"<b>{row['growing_site_name']}</b><br>Food Producing: {row['Food Producing']}", max_width=300)
+                popup=folium.Popup(f"<b>{row['growing_site_name']}</b><br>Food Producing: {row['Food Producing']}", max_width=300),
+                tooltip=f"{row['growing_site_name']} <b><br> Address: {row.get('address', 'Address N/A')}"
             ).add_to(cluster)
 
     # ECOSYSTEM
@@ -207,7 +208,8 @@ with col2:
                 color="orange",
                 fill=True,
                 fill_opacity=0.6,
-                popup=folium.Popup(f"<b>{row['Primary']}</b><br>TIF: {row['TIF District']}", max_width=300)
+                popup=folium.Popup(f"<b>{row['Primary']}</b><br>TIF: {row['TIF District']}", max_width=300),
+                tooltip=f"{row['Primary']} <b><br> Address: {row.get('Project Address', 'Address N/A')}"
             ).add_to(cluster)
 
     # TAVERNS
@@ -220,7 +222,8 @@ with col2:
                 color="purple",
                 fill=True,
                 fill_opacity=0.6,
-                popup=folium.Popup(f"<b>{row['DBA Name']}</b>", max_width=300)
+                popup=folium.Popup(f"<b>{row['DBA Name']}</b>", max_width=300),
+                tooltip=f"{row['DBA Name']} <b><br> Address: {row.get('Address', 'Address N/A')}"
             ).add_to(cluster)
 
     # FARMERS MARKETS
@@ -238,7 +241,8 @@ with col2:
                 fill=True,
                 fill_color=color,
                 fill_opacity=0.6,
-                popup=folium.Popup(popup_text, max_width=300)
+                popup=folium.Popup(popup_text, max_width=300),
+                tooltip=f"{row['Market Name']} <b><br> Address: {row.get('Address', 'Address N/A')}"
             ).add_to(cluster)
 
     folium.LayerControl(collapsed=False).add_to(base_map)
