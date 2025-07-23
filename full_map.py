@@ -6,11 +6,31 @@ from shapely.geometry import Point
 import numpy as np
 import streamlit as st
 from streamlit_folium import st_folium
+from PIL import Image
 from folium.plugins import MarkerCluster
+
 
 # PAGE CONFIG
 st.set_page_config(layout="wide")
 
+logo = Image.open(r"C:\Users\488325\Python\chicago_logo.png")
+
+#IMAGE
+st.markdown(
+    """
+    <style>
+    .logo-container {
+        position: absolute;
+        top: 1rem;
+        right: 1.5rem;
+        z-index: 100;
+    }
+    </style>
+    <div class="logo-container">
+    """, unsafe_allow_html=True
+)
+
+st.image(logo, width=110)
 # CUSTOM CSS
 st.markdown("""
     <style>
