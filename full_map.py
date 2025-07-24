@@ -9,13 +9,12 @@ from streamlit_folium import st_folium
 from PIL import Image
 from folium.plugins import MarkerCluster
 
-
 # PAGE CONFIG
 st.set_page_config(layout="wide")
 
-logo = Image.open(r"chicago_logo.png")
+logo = Image.open(r"C:\\Users\\488325\\Python\\chicago_logo.png")
 
-#IMAGE
+# IMAGE
 st.markdown(
     """
     <style>
@@ -31,6 +30,7 @@ st.markdown(
 )
 
 st.image(logo, width=110)
+
 # CUSTOM CSS
 st.markdown("""
     <style>
@@ -155,146 +155,143 @@ with st.sidebar:
     selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods)
     show_wards = st.checkbox("Ward Labels", value=False)
 
-    show_gardens = st.checkbox("Community Gardens", value=False)
+    #show_gardens = st.checkbox("Community Gardens", value=False)
     show_ecosystem = st.checkbox("Ecosystem Sites", value=False)
-    show_taverns = st.checkbox("Taverns", value=False)
+    show_taverns = st.checkbox("Food Establishments", value=False)
     show_farmers = st.checkbox("Farmers Markets", value=False)
 
-    if show_gardens:
-        selected_food = st.multiselect("Food Producing Gardens", ["Yes", "N/A"], default=["Yes", "N/A"])
-        filtered_cuamps = cuamps_joined[
-            (cuamps_joined["Food Producing"].isin(selected_food)) &
-            (cuamps_joined["neighborhood"].isin(selected_neighborhoods))
-        ]
-    else:
-        filtered_cuamps = pd.DataFrame(columns=cuamps.columns)
+    #selected_food = st.multiselect("Food Producing Gardens", ["Yes", "N/A"], default=["Yes", "N/A"]) if show_gardens else []
+    tavern_types = taverns['License Name'].dropna().unique().tolist() if show_taverns else []
+    selected_tavern_types = st.multiselect("Tavern License Type", tavern_types, default=tavern_types) if show_taverns else []
+    dcase_options = ["Supported by DCASE", "Not Supported"] if show_farmers else []
+    selected_dcase = st.multiselect("DCASE Support", dcase_options, default=dcase_options) if show_farmers else []
 
-    if show_ecosystem:
-        filtered_ecosystem = ecosystem_joined[ecosystem_joined["neighborhood"].isin(selected_neighborhoods)]
-    else:
-        filtered_ecosystem = pd.DataFrame(columns=ecosystem.columns)
+# APPLY FILTERS
+#filtered_cuamps = cuamps_joined[(cuamps_joined["Food Producing"].isin(selected_food)) & (cuamps_joined["neighborhood"].isin(selected_neighborhoods))] if show_gardens else pd.DataFrame(columns=cuamps.columns)
+filtered_ecosystem = ecosystem_joined[ecosystem_joined["neighborhood"].isin(selected_neighborhoods)] if show_ecosystem else pd.DataFrame(columns=ecosystem.columns)
+filtered_taverns = taverns_joined[(taverns_joined["neighborhood"].isin(selected_neighborhoods)) & (taverns_joined['License Name'].isin(selected_tavern_types))] if show_taverns else pd.DataFrame(columns=taverns.columns)
+filtered_farmers = farmers_joined[(farmers_joined["neighborhood"].isin(selected_neighborhoods)) & (farmers_joined['Support'].isin(selected_dcase))] if show_farmers else pd.DataFrame(columns=farmers.columns)
 
-    if show_taverns:
-        filtered_taverns = taverns_joined[taverns_joined["neighborhood"].isin(selected_neighborhoods)]
-    else:
-        filtered_taverns = pd.DataFrame(columns=taverns.columns)
+# DEFINE COLORS FOR LICENSE TYPES
+license_colors = {
+    'Retail Food Establishment': 'blue',
+    'Tavern': 'purple',
+    'Package Goods': 'darkred',
+    'Shared Kitchen User (Long Term)': 'orange',
+    'Wholesale Food Establishment': 'green',
+    'Food - Shared Kitchen': 'lightblue',
+    'Mobile Food License': 'pink',
+    'Food - Shared Kitchen - Supplemental': 'brown'
+}
 
-    if show_farmers:
-        filtered_farmers = farmers_joined[farmers_joined["neighborhood"].isin(selected_neighborhoods)]
-    else:
-        filtered_farmers = pd.DataFrame(columns=farmers.columns)
+# COLORS FOR DCASE
+dcase_color = {
+    "Supported by DCASE": "green",
+    "Not Supported": "gray"
+}
 
-# STATS CONTAINER
+# MAP
+map_center = [41.8781, -87.6298]
+base_map = folium.Map(location=map_center, zoom_start=11, tiles="CartoDB positron")
+
+for _, row in file.iterrows():
+    opacity = 0.6 if row['neighborhood'] in selected_neighborhoods else 0.2
+    folium.GeoJson(
+        row['geometry'],
+        name=row['neighborhood'],
+        style_function=lambda feature, o=opacity: {
+            'fillColor': 'grey',
+            'color': 'grey',
+            'weight': 1.25,
+            'fillOpacity': o
+        },
+        tooltip=folium.Tooltip(row['neighborhood']) if row['neighborhood'] in selected_neighborhoods else None
+    ).add_to(base_map)
+
+    if row['neighborhood'] in selected_neighborhoods:
+        centroid = row["geometry"].centroid
+        folium.map.Marker(
+            [centroid.y, centroid.x],
+            icon=folium.DivIcon(html=f"<div style='font-size:8pt; color:black'>{row['neighborhood']}</div>")
+        ).add_to(base_map)
+
+if show_wards and 'ward' in cuamps_joined.columns:
+    ward_centroids = cuamps_joined.groupby('ward')[['Latitude', 'Longitude']].mean().dropna().reset_index()
+    for _, row in ward_centroids.iterrows():
+        folium.map.Marker(
+            [row['Latitude'], row['Longitude']],
+            icon=folium.DivIcon(html=f"<div style='font-size:10pt; font-weight:bold; color:black'>Ward {int(row['ward'])}</div>")
+        ).add_to(base_map)
+
+# if show_gardens and not filtered_cuamps.empty:
+#     cluster = MarkerCluster(name="Community Gardens").add_to(base_map)
+#     for _, row in filtered_cuamps.iterrows():
+#         tooltip = f"{row['growing_site_name']} </b><br> Address:  {row.get('address', 'Address N/A')}"
+#         folium.CircleMarker(
+#             location=(row["Latitude"], row["Longitude"]),
+#             radius=5,
+#             color="green",
+#             fill=True,
+#             fill_opacity=0.6,
+#             popup=folium.Popup(f"<b>{row['growing_site_name']}</b><br>Food Producing: {row['Food Producing']}", max_width=300),
+#             tooltip=tooltip
+#         ).add_to(cluster)
+
+if show_ecosystem and not filtered_ecosystem.empty:
+    cluster = MarkerCluster(name="Ecosystem Sites").add_to(base_map)
+    for _, row in filtered_ecosystem.iterrows():
+        tooltip = f"{row['Primary']}</b><br><b>Address:</b> {row.get('Project Address', 'Address N/A')}"
+        folium.CircleMarker(
+            location=(row["Latitude"], row["Longitude"]),
+            radius=5,
+            color="orange",
+            fill=True,
+            fill_opacity=0.6,
+            popup=folium.Popup(f"<b>{row['Primary']}</b><br>TIF: {row['TIF District']}", max_width=300),
+            tooltip=tooltip
+        ).add_to(cluster)
+
+if show_taverns and not filtered_taverns.empty:
+    cluster = MarkerCluster(name="Taverns").add_to(base_map)
+    for _, row in filtered_taverns.iterrows():
+        license_name = row['License Name']
+        color = license_colors.get(license_name, 'purple')
+        tooltip = f"{row['DBA Name']} </b><br><b>Address:</b>  {row.get('Address', 'Address N/A')}"
+        folium.CircleMarker(
+            location=(row["Latitude"], row["Longitude"]),
+            radius=5,
+            color=color,
+            fill=True,
+            fill_opacity=0.6,
+            popup=folium.Popup(f"<b>{row['DBA Name']}</b><br>License: {license_name}", max_width=300),
+            tooltip=tooltip
+        ).add_to(cluster)
+
+if show_farmers and not filtered_farmers.empty:
+    cluster = MarkerCluster(name="Farmers Markets").add_to(base_map)
+    for _, row in filtered_farmers.iterrows():
+        color = dcase_color.get(row['Support'], 'gray')
+        tooltip = f"{row['Market Name']} </b><br><b>Address:</b>  {row.get('Address', 'Address N/A')}<br>{row['Support']}"
+        popup_text = f"<b>{row['Market Name']}</b><br>{row['Address']}"
+        if row["DCASE"]:
+            popup_text += "<br><b>Supported by DCASE</b>"
+        folium.CircleMarker(
+            location=(row["Latitude"], row["Longitude"]),
+            radius=5,
+            color=color,
+            fill=True,
+            fill_color=color,
+            fill_opacity=0.6,
+            popup=folium.Popup(popup_text, max_width=300),
+            tooltip=tooltip
+        ).add_to(cluster)
+
+# SUMMARY METRICS
 st.markdown("<div class='metrics-row'>" +
-    f"<div class='metric-container'><h4>Total Gardens</h4><p>{len(filtered_cuamps)}</p></div>" +
+    #f"<div class='metric-container'><h4>Total Gardens</h4><p>{len(filtered_cuamps)}</p></div>" +
     f"<div class='metric-container'><h4>Ecosystem Sites</h4><p>{len(filtered_ecosystem)}</p></div>" +
     f"<div class='metric-container'><h4>Taverns</h4><p>{len(filtered_taverns)}</p></div>" +
     f"<div class='metric-container'><h4>Farmers Markets</h4><p>{len(filtered_farmers)}</p></div>" +
     "</div>", unsafe_allow_html=True)
 
-# LAYOUT COLUMNS
-col1, col2 = st.columns([1, 3])
-
-with col2:
-    map_center = [41.8781, -87.6298]
-    base_map = folium.Map(location=map_center, zoom_start=11, tiles="CartoDB positron")
-
-    for _, row in file.iterrows():
-        opacity = 0.6 if row['neighborhood'] in selected_neighborhoods else 0.2
-        folium.GeoJson(
-            row['geometry'],
-            name=row['neighborhood'],
-            style_function=lambda feature, o=opacity: {
-                'fillColor': 'grey',
-                'color': 'grey',
-                'weight': 1.25,
-                'fillOpacity': o
-            },
-            tooltip=folium.Tooltip(row['neighborhood']) if row['neighborhood'] in selected_neighborhoods else None
-        ).add_to(base_map)
-
-        if row['neighborhood'] in selected_neighborhoods:
-            centroid = row["geometry"].centroid
-            folium.map.Marker(
-                [centroid.y, centroid.x],
-                icon=folium.DivIcon(html=f"<div style='font-size:8pt; color:black'>{row['neighborhood']}</div>")
-            ).add_to(base_map)
-
-    if show_wards and 'ward' in cuamps_joined.columns:
-        ward_centroids = (
-            cuamps_joined
-            .groupby('ward')[['Latitude', 'Longitude']]
-            .mean()
-            .dropna()
-            .reset_index()
-        )
-        for _, row in ward_centroids.iterrows():
-            folium.map.Marker(
-                [row['Latitude'], row['Longitude']],
-                icon=folium.DivIcon(
-                    html=f"<div style='font-size:10pt; font-weight:bold; color:black'>Ward {int(row['ward'])}</div>"
-                )
-            ).add_to(base_map)
-
-    if show_gardens and not filtered_cuamps.empty:
-        cluster = MarkerCluster(name="Community Gardens").add_to(base_map)
-        for _, row in filtered_cuamps.iterrows():
-            tooltip = f"{row['growing_site_name']} </b><br> Address:  {row.get('address', 'Address N/A')}"
-            folium.CircleMarker(
-                location=(row["Latitude"], row["Longitude"]),
-                radius=5,
-                color="green",
-                fill=True,
-                fill_opacity=0.6,
-                popup=folium.Popup(f"<b>{row['growing_site_name']}</b><br>Food Producing: {row['Food Producing']}", max_width=300),
-                tooltip=tooltip
-            ).add_to(cluster)
-
-    if show_ecosystem and not filtered_ecosystem.empty:
-        cluster = MarkerCluster(name="Ecosystem Sites").add_to(base_map)
-        for _, row in filtered_ecosystem.iterrows():
-            tooltip = f"{row['Primary']}</b><br><b>Address:</b> {row.get('Project Address', 'Address N/A')}"
-            folium.CircleMarker(
-                location=(row["Latitude"], row["Longitude"]),
-                radius=5,
-                color="orange",
-                fill=True,
-                fill_opacity=0.6,
-                popup=folium.Popup(f"<b>{row['Primary']}</b><br>TIF: {row['TIF District']}", max_width=300),
-                tooltip=tooltip
-            ).add_to(cluster)
-
-    if show_taverns and not filtered_taverns.empty:
-        cluster = MarkerCluster(name="Taverns").add_to(base_map)
-        for _, row in filtered_taverns.iterrows():
-            tooltip = f"{row['DBA Name']} </b><br><b>Address:</b>  {row.get('Address', 'Address N/A')}"
-            folium.CircleMarker(
-                location=(row["Latitude"], row["Longitude"]),
-                radius=5,
-                color="purple",
-                fill=True,
-                fill_opacity=0.6,
-                popup=folium.Popup(f"<b>{row['DBA Name']}</b>", max_width=300),
-                tooltip=tooltip
-            ).add_to(cluster)
-
-    if show_farmers and not filtered_farmers.empty:
-        cluster = MarkerCluster(name="Farmers Markets").add_to(base_map)
-        for _, row in filtered_farmers.iterrows():
-            tooltip = f"{row['Market Name']} </b><br><b>Address:</b>  {row.get('Address', 'Address N/A')}"
-            color = "yellow" if row["DCASE"] else "orange"
-            popup_text = f"<b>{row['Market Name']}</b><br>{row['Address']}"
-            if row["DCASE"]:
-                popup_text += "<br><b>Supported by DCASE</b>"
-            folium.CircleMarker(
-                location=(row["Latitude"], row["Longitude"]),
-                radius=5,
-                color=color,
-                fill=True,
-                fill_color=color,
-                fill_opacity=0.6,
-                popup=folium.Popup(popup_text, max_width=300),
-                tooltip=tooltip
-            ).add_to(cluster)
-
-    st_folium(base_map, width=1000, height=700)
+st_folium(base_map, width=1000, height=700)
