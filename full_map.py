@@ -152,7 +152,7 @@ farmers_joined = farmers_joined.rename(columns={"neighborhood_right": "neighborh
 with st.sidebar:
     st.markdown("### 🔍 Filters")
     all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
-    selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods)
+    selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default= all_neighborhoods)
     show_wards = st.checkbox("Ward Labels", value=False)
 
     #show_gardens = st.checkbox("Community Gardens", value=False)
