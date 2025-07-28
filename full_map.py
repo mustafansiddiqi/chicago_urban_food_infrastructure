@@ -162,7 +162,7 @@ with st.sidebar:
 
     #selected_food = st.multiselect("Food Producing Gardens", ["Yes", "N/A"], default=["Yes", "N/A"]) if show_gardens else []
     tavern_types = taverns['License Name'].dropna().unique().tolist() if show_taverns else []
-    selected_tavern_types = st.multiselect("Tavern License Type", tavern_types, default=tavern_types) if show_taverns else []
+    selected_tavern_types = st.multiselect("License Type", tavern_types, default=tavern_types) if show_taverns else []
     dcase_options = ["Supported by DCASE", "Not Supported"] if show_farmers else []
     selected_dcase = st.multiselect("DCASE Support", dcase_options, default=dcase_options) if show_farmers else []
 
@@ -192,7 +192,7 @@ dcase_color = {
 
 # MAP
 map_center = [41.8781, -87.6298]
-base_map = folium.Map(location=map_center, zoom_start=11, tiles="CartoDB positron")
+base_map = folium.Map(location=map_center, zoom_start=11, tiles="OpenStreetMap")
 
 for _, row in file.iterrows():
     opacity = 0.6 if row['neighborhood'] in selected_neighborhoods else 0.2
@@ -290,7 +290,7 @@ if show_farmers and not filtered_farmers.empty:
 st.markdown("<div class='metrics-row'>" +
     #f"<div class='metric-container'><h4>Total Gardens</h4><p>{len(filtered_cuamps)}</p></div>" +
     f"<div class='metric-container'><h4>Ecosystem Sites</h4><p>{len(filtered_ecosystem)}</p></div>" +
-    f"<div class='metric-container'><h4>Taverns</h4><p>{len(filtered_taverns)}</p></div>" +
+    f"<div class='metric-container'><h4>Food Establishments</h4><p>{len(filtered_taverns)}</p></div>" +
     f"<div class='metric-container'><h4>Farmers Markets</h4><p>{len(filtered_farmers)}</p></div>" +
     "</div>", unsafe_allow_html=True)
 
