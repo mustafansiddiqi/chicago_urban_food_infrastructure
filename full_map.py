@@ -70,7 +70,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # TITLE
-st.markdown('<h1 class="main-title">Chicago Urban Agriculture & Food Ecosystem Map</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-title">Chicago Urban Food Ecosystem Map</h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">An initiative from the Office of Mayor Brandon Johnson</p>', unsafe_allow_html=True)
 
 # FILE PATHS
