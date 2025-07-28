@@ -192,7 +192,7 @@ dcase_color = {
 
 # MAP
 map_center = [41.8781, -87.6298]
-base_map = folium.Map(location=map_center, zoom_start=11, tiles="OpenStreetMap")
+base_map = folium.Map(location=map_center, zoom_start=11, tiles="stamenterrain")
 
 for _, row in file.iterrows():
     opacity = 0.6 if row['neighborhood'] in selected_neighborhoods else 0.2
