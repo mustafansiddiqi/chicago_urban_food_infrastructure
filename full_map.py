@@ -286,6 +286,32 @@ if show_farmers and not filtered_farmers.empty:
             tooltip=tooltip
         ).add_to(cluster)
 
+#LEGEND
+
+legend_html = """
+<div style='position: fixed; bottom: 30px; right: 30px; z-index: 9999;
+            background-color: white; padding: 10px; border: 2px solid grey;
+            border-radius: 5px; font-size: 14px;'>
+<b>Color Legend</b><br>
+"""
+
+# Add tavern types
+if show_taverns:
+    for license_type in selected_tavern_types:
+        color = license_colors.get(license_type, 'purple')
+        legend_html += f"<div style='margin-bottom: 4px;'><span style='display:inline-block; width:12px; height:12px; background:{color}; margin-right:5px;'></span>{license_type}</div>"
+
+# Add DCASE status
+if show_farmers:
+    for support in selected_dcase:
+        color = dcase_color.get(support, 'gray')
+        legend_html += f"<div style='margin-bottom: 4px;'><span style='display:inline-block; width:12px; height:12px; background:{color}; margin-right:5px;'></span>{support}</div>"
+
+legend_html += "</div>"
+
+st.markdown(legend_html, unsafe_allow_html=True)
+
+
 # SUMMARY METRICS
 st.markdown("<div class='metrics-row'>" +
     #f"<div class='metric-container'><h4>Total Gardens</h4><p>{len(filtered_cuamps)}</p></div>" +
