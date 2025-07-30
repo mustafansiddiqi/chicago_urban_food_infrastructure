@@ -8,6 +8,7 @@ import streamlit as st
 from streamlit_folium import st_folium
 from PIL import Image
 from folium.plugins import MarkerCluster
+from branca.element import Element
 
 # PAGE CONFIG
 st.set_page_config(layout="wide")
@@ -62,9 +63,12 @@ st.markdown("""
             margin-bottom: 0.2em;
         }
         .metric-container p {
-            font-size: 1.5em;
-            font-weight: bold;
-            margin: 0;
+            text-align: center;
+            background-color: #f0f0f0;  /* light grey */
+            border-radius: 12px;         /* rounded corners */
+            padding: 1em 2em;
+            box-shadow: 1px 1px 5px rgba(0,0,0,0.1);
+            min-width: 140px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -79,6 +83,7 @@ CUAMPS_CSV_PATH = "cuamp_gardens geocoded.csv"
 FOOD_TAVERNS_CSV_PATH = "Food_Tavern_PackGoods_Current.csv"
 FOOD_ECOSYSTEM_CSV_PATH = "Food_Ecosystem_Data_2025.csv"
 FARMERS_MARKETS_CSV_PATH = "Farmers_Markets.csv"
+SNAP_PATH = r"C:\Users\488325\Python\chicago_urban_food_infrastructure\SNAP.csv"
 
 # CACHED DATA LOADERS
 @st.cache_resource
@@ -92,12 +97,13 @@ def load_csv_data():
     cuamps = pd.read_csv(CUAMPS_CSV_PATH)
     taverns = pd.read_csv(FOOD_TAVERNS_CSV_PATH)
     ecosystem = pd.read_csv(FOOD_ECOSYSTEM_CSV_PATH)
+    snap = pd.read_csv(SNAP_PATH)
     farmers = pd.read_csv(FARMERS_MARKETS_CSV_PATH)
-    return cuamps, taverns, ecosystem, farmers
+    return cuamps, taverns, ecosystem, farmers, snap
 
 # LOAD DATA
 file = load_shapefile()
-cuamps, taverns, ecosystem, farmers = load_csv_data()
+cuamps, taverns, ecosystem, farmers, snap = load_csv_data()
 
 # CLEAN & STANDARDIZE DATA
 cuamps["neighborhood"] = cuamps["neighborhood"].astype(str).str.strip().str.title()
@@ -148,17 +154,36 @@ farmers_gdf = gpd.GeoDataFrame(
 farmers_joined = gpd.sjoin(farmers_gdf, file, how='left', predicate='within')
 farmers_joined = farmers_joined.rename(columns={"neighborhood_right": "neighborhood"})
 
+snap["Store_Type"] = snap["Store_Type"].fillna("Unknown")
+snap_gdf = gpd.GeoDataFrame(
+    snap,
+    geometry=gpd.points_from_xy(snap["Longitude"], snap["Latitude"]),
+    crs="EPSG:4326"
+)
+
+# Spatial join with neighborhood boundaries
+snap_joined = gpd.sjoin(snap_gdf, file, how="left", predicate="within")
+snap_joined = snap_joined.rename(columns={"neighborhood_right": "neighborhood"})
+
 # FILTERS
 with st.sidebar:
     st.markdown("### 🔍 Filters")
     all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
     selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default= all_neighborhoods)
     show_wards = st.checkbox("Ward Labels", value=False)
+    
 
     #show_gardens = st.checkbox("Community Gardens", value=False)
     show_ecosystem = st.checkbox("Ecosystem Sites", value=False)
     show_taverns = st.checkbox("Food Establishments", value=False)
     show_farmers = st.checkbox("Farmers Markets", value=False)
+    show_snap = st.checkbox("Grocery Stores (SNAP)", value=False)
+    if show_snap:
+        all_store_types = sorted(snap["Store_Type"].unique())
+        selected_store_types = st.sidebar.multiselect("Select Store Types", all_store_types, default=all_store_types)
+        filtered_snap = snap[snap["Store_Type"].isin(selected_store_types)]
+    else:
+        filtered_snap = pd.DataFrame()
 
     #selected_food = st.multiselect("Food Producing Gardens", ["Yes", "N/A"], default=["Yes", "N/A"]) if show_gardens else []
     tavern_types = taverns['License Name'].dropna().unique().tolist() if show_taverns else []
@@ -172,22 +197,31 @@ filtered_ecosystem = ecosystem_joined[ecosystem_joined["neighborhood"].isin(sele
 filtered_taverns = taverns_joined[(taverns_joined["neighborhood"].isin(selected_neighborhoods)) & (taverns_joined['License Name'].isin(selected_tavern_types))] if show_taverns else pd.DataFrame(columns=taverns.columns)
 filtered_farmers = farmers_joined[(farmers_joined["neighborhood"].isin(selected_neighborhoods)) & (farmers_joined['Support'].isin(selected_dcase))] if show_farmers else pd.DataFrame(columns=farmers.columns)
 
-# DEFINE COLORS FOR LICENSE TYPES
+# DEFINE COLORS FOR FILTER TYPES
 license_colors = {
-    'Retail Food Establishment': 'blue',
-    'Tavern': 'purple',
-    'Package Goods': 'darkred',
-    'Shared Kitchen User (Long Term)': 'orange',
-    'Wholesale Food Establishment': 'green',
-    'Food - Shared Kitchen': 'lightblue',
-    'Mobile Food License': 'pink',
-    'Food - Shared Kitchen - Supplemental': 'brown'
+    'Retail Food Establishment': '#1f78b4',      # blue
+    'Tavern': '#6a3d9a',                        # purple
+    'Package Goods': '#b15928',                  # brownish dark orange
+    'Shared Kitchen User (Long Term)': '#ff7f00', # bright orange
+    'Wholesale Food Establishment': '#33a02c',   # green
+    'Food - Shared Kitchen': '#a6cee3',           # light blue
+    'Mobile Food License': '#fb9a99',              # pinkish red
+    'Food - Shared Kitchen - Supplemental': '#cab2d6'  # light purple
 }
 
-# COLORS FOR DCASE
 dcase_color = {
-    "Supported by DCASE": "green",
-    "Not Supported": "gray"
+    "Supported by DCASE": '#33a02c',  # green
+    "Not Supported": '#b2df8a'        # light green (different from gray)
+}
+
+snap_colors = {
+    'Grocery Store': '#e31a1c',            # red
+    'Specialty Store': '#6a3d9a',          # purple (distinct from tavern)
+    'Super Store': '#1f78b4',              # blue (distinct from retail food)
+    'Other': '#ff7f00',                    # orange
+    'Convenience Store': '#fb9a99',        # pinkish
+    'Farmers and Markets': '#b15928',      # brownish orange
+    'Restaurant Meals Program': '#a6cee3'  # light blue
 }
 
 # MAP
@@ -286,38 +320,79 @@ if show_farmers and not filtered_farmers.empty:
             tooltip=tooltip
         ).add_to(cluster)
 
-#LEGEND
+if show_snap:
+    
+    for _, row in filtered_snap.iterrows():
+        store_type = row.get("Store Type", "Other")
+        marker_color = snap_colors.get(store_type, "gray")
+        tooltip = f"{row['Store_Name']} — {row.get('Address', 'Address N/A')}"
 
-legend_html = """
-<div style='position: fixed; bottom: 30px; right: 30px; z-index: 9999;
-            background-color: white; padding: 10px; border: 2px solid grey;
-            border-radius: 5px; font-size: 14px;'>
-<b>Color Legend</b><br>
-"""
-
-# Add tavern types
-if show_taverns:
-    for license_type in selected_tavern_types:
-        color = license_colors.get(license_type, 'purple')
-        legend_html += f"<div style='margin-bottom: 4px;'><span style='display:inline-block; width:12px; height:12px; background:{color}; margin-right:5px;'></span>{license_type}</div>"
-
-# Add DCASE status
-if show_farmers:
-    for support in selected_dcase:
-        color = dcase_color.get(support, 'gray')
-        legend_html += f"<div style='margin-bottom: 4px;'><span style='display:inline-block; width:12px; height:12px; background:{color}; margin-right:5px;'></span>{support}</div>"
-
-legend_html += "</div>"
-
-st.markdown(legend_html, unsafe_allow_html=True)
-
+        folium.Marker(
+        location=[row["Latitude"], row["Longitude"]],
+        tooltip=tooltip,
+        icon=folium.Icon(color=marker_color, icon='shopping-cart', prefix='fa')
+        ).add_to(base_map)
 
 # SUMMARY METRICS
+
 st.markdown("<div class='metrics-row'>" +
-    #f"<div class='metric-container'><h4>Total Gardens</h4><p>{len(filtered_cuamps)}</p></div>" +
-    f"<div class='metric-container'><h4>Ecosystem Sites</h4><p>{len(filtered_ecosystem)}</p></div>" +
-    f"<div class='metric-container'><h4>Food Establishments</h4><p>{len(filtered_taverns)}</p></div>" +
-    f"<div class='metric-container'><h4>Farmers Markets</h4><p>{len(filtered_farmers)}</p></div>" +
+    #f"<div class='metric-container'><h4><b>Total Gardens<b></h4><p><b>{len(filtered_cuamps)}<b></p></div>" +
+    f"<div class='metric-container'><h4><b>Ecosystem Sites</b></h4><p><b>{len(filtered_ecosystem)}</b></p></div>" +
+    f"<div class='metric-container'><h4><b>Food Establishments</b></h4><p><b>{len(filtered_taverns)}</b></p></div>" +
+    f"<div class='metric-container'><h4><b>Grocery Stores</b></h4><p><b>{len(filtered_snap)}</b></p></div>" +
+    f"<div class='metric-container'><h4><b>Farmers Markets</b></h4><p><b>{len(filtered_farmers)}</b></p></div>" +
     "</div>", unsafe_allow_html=True)
+#LEGEND
+legend_html_sections = []
+
+if show_ecosystem:
+    ecosystem_section = '<strong>Ecosystem Sites</strong><br>'
+    ecosystem_section += f'<i style="background:orange; width:10px; height:10px; float:left; margin-right:6px;"></i> Ecosystem Sites<br><br>'
+    legend_html_sections.append(ecosystem_section)
+
+if show_farmers:
+    farmers_section = '<strong>Farmers Markets</strong><br>'
+    for support_type, color in dcase_color.items():
+        if support_type in selected_dcase:
+            farmers_section += f'<i style="background:{color}; width:10px; height:10px; float:left; margin-right:6px;"></i> {support_type}<br>'
+    farmers_section += '<br>'
+    legend_html_sections.append(farmers_section)
+
+if show_snap:
+    snap_section = '<strong>Grocery Stores</strong><br>'
+    for store_type in selected_store_types:
+        color = snap_colors.get(store_type, "black")
+        snap_section += f'<i style="background:{color}; width:10px; height:10px; float:left; margin-right:6px;"></i> {store_type}<br>'
+    snap_section += '<br>'
+    legend_html_sections.append(snap_section)
+
+if show_taverns:
+    tavern_section = '<strong>Food Establishments</strong><br>'
+    for license_type in selected_tavern_types:
+        color = license_colors.get(license_type, "black")
+        tavern_section += f'<i style="background:{color}; width:10px; height:10px; float:left; margin-right:6px;"></i> {license_type}<br>'
+    tavern_section += '<br>'
+    legend_html_sections.append(tavern_section)
+
+if legend_html_sections:
+    legend_html = f"""
+    <div style="
+        position: fixed;
+        bottom: 50px;
+        right: 50px;
+        z-index: 9999;
+        background-color: white;
+        padding: 10px;
+        border: 2px solid black;
+        border-radius: 8px;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        font-size: 13px;
+        max-width: 250px;
+    ">
+        {''.join(legend_html_sections)}
+        <div style="clear: both;"></div>
+    </div>
+    """
+    base_map.get_root().html.add_child(Element(legend_html))
 
 st_folium(base_map, width=1000, height=700)
