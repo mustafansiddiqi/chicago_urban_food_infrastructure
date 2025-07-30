@@ -121,49 +121,28 @@ farmers['DCASE'] = farmers['DCASE'].astype(bool)
 cuamps['Food Producing'] = np.where(cuamps["food_producing"] == True, 'Yes', 'N/A')
 farmers['Support'] = np.where(farmers['DCASE'], "Supported by DCASE", "Not Supported")
 
-# CONVERT POINT DATA TO GEODATAFRAMES FOR SPATIAL FILTERING
-cuamps_gdf = gpd.GeoDataFrame(
-    cuamps,
-    geometry=gpd.points_from_xy(cuamps['Longitude'], cuamps['Latitude']),
-    crs='EPSG:4326'
-)
-cuamps_joined = gpd.sjoin(cuamps_gdf, file, how='left', predicate='within')
-cuamps_joined = cuamps_joined.rename(columns={"neighborhood_right": "neighborhood"})
+@st.cache_data
+def perform_spatial_joins(_file, _cuamps, _taverns, _ecosystem, _farmers, _snap):
+    def point_gdf(df, lat_col, lon_col):
+        return gpd.GeoDataFrame(df.copy(), geometry=gpd.points_from_xy(df[lon_col], df[lat_col]), crs="EPSG:4326")
 
-ecosystem_gdf = gpd.GeoDataFrame(
-    ecosystem,
-    geometry=gpd.points_from_xy(ecosystem['Longitude'], ecosystem['Latitude']),
-    crs='EPSG:4326'
-)
-ecosystem_joined = gpd.sjoin(ecosystem_gdf, file, how='left', predicate='within')
-ecosystem_joined = ecosystem_joined.rename(columns={"neighborhood_right": "neighborhood"})
+    cuamps_gdf = point_gdf(_cuamps, 'Latitude', 'Longitude')
+    taverns_gdf = point_gdf(_taverns, 'Latitude', 'Longitude')
+    ecosystem_gdf = point_gdf(_ecosystem, 'Latitude', 'Longitude')
+    farmers_gdf = point_gdf(_farmers, 'Latitude', 'Longitude')
+    snap_gdf = point_gdf(_snap, 'Latitude', 'Longitude')
 
-taverns_gdf = gpd.GeoDataFrame(
-    taverns,
-    geometry=gpd.points_from_xy(taverns['Longitude'], taverns['Latitude']),
-    crs='EPSG:4326'
-)
-taverns_joined = gpd.sjoin(taverns_gdf, file, how='left', predicate='within')
-taverns_joined = taverns_joined.rename(columns={"neighborhood_right": "neighborhood"})
+    def join(gdf): return gpd.sjoin(gdf, _file, how='left', predicate='within').rename(columns={"neighborhood_right": "neighborhood"})
 
-farmers_gdf = gpd.GeoDataFrame(
-    farmers,
-    geometry=gpd.points_from_xy(farmers['Longitude'], farmers['Latitude']),
-    crs='EPSG:4326'
-)
-farmers_joined = gpd.sjoin(farmers_gdf, file, how='left', predicate='within')
-farmers_joined = farmers_joined.rename(columns={"neighborhood_right": "neighborhood"})
+    return (
+        join(cuamps_gdf),
+        join(taverns_gdf),
+        join(ecosystem_gdf),
+        join(farmers_gdf),
+        join(snap_gdf)
+    )
 
-snap["Store_Type"] = snap["Store_Type"].fillna("Unknown")
-snap_gdf = gpd.GeoDataFrame(
-    snap,
-    geometry=gpd.points_from_xy(snap["Longitude"], snap["Latitude"]),
-    crs="EPSG:4326"
-)
-
-# Spatial join with neighborhood boundaries
-snap_joined = gpd.sjoin(snap_gdf, file, how="left", predicate="within")
-snap_joined = snap_joined.rename(columns={"neighborhood_right": "neighborhood"})
+cuamps_joined, taverns_joined, ecosystem_joined, farmers_joined, snap_joined = perform_spatial_joins(file, cuamps, taverns, ecosystem, farmers, snap)
 
 # FILTERS
 with st.sidebar:
@@ -191,11 +170,37 @@ with st.sidebar:
     dcase_options = ["Supported by DCASE", "Not Supported"] if show_farmers else []
     selected_dcase = st.multiselect("DCASE Support", dcase_options, default=dcase_options) if show_farmers else []
 
+@st.cache_data
+def filter_snap(_snap_df, selected_store_types, neighborhoods):
+    return _snap_df[
+        (_snap_df["Store_Type"].isin(selected_store_types)) &
+        (_snap_df["neighborhood"].isin(neighborhoods))
+    ]
+
+@st.cache_data
+def filter_taverns(_taverns_df, selected_types, neighborhoods):
+    return _taverns_df[
+        (_taverns_df["License Name"].isin(selected_types)) &
+        (_taverns_df["neighborhood"].isin(neighborhoods))
+    ]
+
+@st.cache_data
+def filter_ecosystem(_ecosystem_df, neighborhoods):
+    return _ecosystem_df[_ecosystem_df["neighborhood"].isin(neighborhoods)]
+
+@st.cache_data
+def filter_farmers(_farmers_df, selected_support, neighborhoods):
+    return _farmers_df[
+        (_farmers_df["Support"].isin(selected_support)) &
+        (_farmers_df["neighborhood"].isin(neighborhoods))
+    ]
+
 # APPLY FILTERS
 #filtered_cuamps = cuamps_joined[(cuamps_joined["Food Producing"].isin(selected_food)) & (cuamps_joined["neighborhood"].isin(selected_neighborhoods))] if show_gardens else pd.DataFrame(columns=cuamps.columns)
-filtered_ecosystem = ecosystem_joined[ecosystem_joined["neighborhood"].isin(selected_neighborhoods)] if show_ecosystem else pd.DataFrame(columns=ecosystem.columns)
-filtered_taverns = taverns_joined[(taverns_joined["neighborhood"].isin(selected_neighborhoods)) & (taverns_joined['License Name'].isin(selected_tavern_types))] if show_taverns else pd.DataFrame(columns=taverns.columns)
-filtered_farmers = farmers_joined[(farmers_joined["neighborhood"].isin(selected_neighborhoods)) & (farmers_joined['Support'].isin(selected_dcase))] if show_farmers else pd.DataFrame(columns=farmers.columns)
+filtered_snap = filter_snap(snap_joined, selected_store_types, selected_neighborhoods) if show_snap else pd.DataFrame()
+filtered_taverns = filter_taverns(taverns_joined, selected_tavern_types, selected_neighborhoods) if show_taverns else pd.DataFrame()
+filtered_ecosystem = filter_ecosystem(ecosystem_joined, selected_neighborhoods) if show_ecosystem else pd.DataFrame()
+filtered_farmers = filter_farmers(farmers_joined, selected_dcase, selected_neighborhoods) if show_farmers else pd.DataFrame()
 
 # DEFINE COLORS FOR FILTER TYPES
 license_colors = {
@@ -320,18 +325,23 @@ if show_farmers and not filtered_farmers.empty:
             tooltip=tooltip
         ).add_to(cluster)
 
-if show_snap:
-    
+if show_snap and not filtered_snap.empty:
+    cluster = MarkerCluster(name="Grocery Stores (SNAP)").add_to(base_map)
     for _, row in filtered_snap.iterrows():
-        store_type = row.get("Store Type", "Other")
+        store_type = row.get("Store_Type", "Other")
         marker_color = snap_colors.get(store_type, "gray")
         tooltip = f"{row['Store_Name']} — {row.get('Address', 'Address N/A')}"
 
-        folium.Marker(
-        location=[row["Latitude"], row["Longitude"]],
-        tooltip=tooltip,
-        icon=folium.Icon(color=marker_color, icon='shopping-cart', prefix='fa')
-        ).add_to(base_map)
+        folium.CircleMarker(
+            location=[row["Latitude"], row["Longitude"]],
+            radius=5,
+            color=marker_color,
+            fill=True,
+            fill_color=marker_color,
+            fill_opacity=0.6,
+            tooltip=tooltip,
+            popup=folium.Popup(f"<b>{row['Store_Name']}</b><br>{row.get('Address', 'Address N/A')}", max_width=300)
+        ).add_to(cluster)
 
 # SUMMARY METRICS
 
