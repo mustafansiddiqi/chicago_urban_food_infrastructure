@@ -409,4 +409,5 @@ if legend_html_sections:
     </div>
     """
     base_map.get_root().html.add_child(Element(legend_html))
+    
 st_folium(base_map, width=1000, height=700)
