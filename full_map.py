@@ -83,7 +83,7 @@ CUAMPS_CSV_PATH = "cuamp_gardens geocoded.csv"
 FOOD_TAVERNS_CSV_PATH = "Food_Tavern_PackGoods_Current.csv"
 FOOD_ECOSYSTEM_CSV_PATH = "Food_Ecosystem_Data_2025.csv"
 FARMERS_MARKETS_CSV_PATH = "Farmers_Markets.csv"
-SNAP_PATH = r"C:\Users\488325\Python\chicago_urban_food_infrastructure\SNAP.csv"
+SNAP_PATH = "SNAP.csv"
 
 # CACHED DATA LOADERS
 @st.cache_resource
