@@ -153,7 +153,7 @@ cuamps_joined, taverns_joined, ecosystem_joined, farmers_joined, snap_joined = p
 with st.sidebar:
     st.markdown("### 🔍 Filters")
     all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
-    selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default= all_neighborhoods)
+    selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default= "Loop")
     show_wards = st.checkbox("Ward Labels", value=False)
     
 
