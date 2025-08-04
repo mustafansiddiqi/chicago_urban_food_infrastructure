@@ -9,6 +9,8 @@ from streamlit_folium import st_folium
 from PIL import Image
 from folium.plugins import MarkerCluster
 from branca.element import Element
+import os
+os.chdir('/mount/src/chicago_urban_food_infrastructure')
 
 # PAGE CONFIG
 st.set_page_config(layout="wide")
