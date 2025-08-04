@@ -94,11 +94,11 @@ def load_shapefile():
 
 @st.cache_data
 def load_csv_data():
-    cuamps = pd.read_csv(CUAMPS_CSV_PATH)
-    taverns = pd.read_csv(FOOD_TAVERNS_CSV_PATH)
-    ecosystem = pd.read_csv(FOOD_ECOSYSTEM_CSV_PATH)
-    snap = pd.read_csv(SNAP_PATH)
-    farmers = pd.read_csv(FARMERS_MARKETS_CSV_PATH)
+    cuamps = pd.read_csv(CUAMPS_CSV_PATH, header=0)
+    taverns = pd.read_csv(FOOD_TAVERNS_CSV_PATH, header=0)
+    ecosystem = pd.read_csv(FOOD_ECOSYSTEM_CSV_PATH, header=0)
+    snap = pd.read_csv(SNAP_PATH, header=0)
+    farmers = pd.read_csv(FARMERS_MARKETS_CSV_PATH, header=0)
     return cuamps, taverns, ecosystem, farmers, snap
 
 # LOAD DATA
@@ -120,10 +120,14 @@ farmers.dropna(subset=['Latitude', 'Longitude'], inplace=True)
 farmers['DCASE'] = farmers['DCASE'].astype(bool)
 cuamps['Food Producing'] = np.where(cuamps["food_producing"] == True, 'Yes', 'N/A')
 farmers['Support'] = np.where(farmers['DCASE'], "Supported by DCASE", "Not Supported")
+all_store_types = sorted(snap["Store_Type"].dropna().astype(str).unique())
 
 @st.cache_data
 def perform_spatial_joins(_file, _cuamps, _taverns, _ecosystem, _farmers, _snap):
     def point_gdf(df, lat_col, lon_col):
+        df[lat_col] = pd.to_numeric(df[lat_col], errors='coerce')
+        df[lon_col] = pd.to_numeric(df[lon_col], errors='coerce')
+        df = df.dropna(subset=[lat_col, lon_col])
         return gpd.GeoDataFrame(df.copy(), geometry=gpd.points_from_xy(df[lon_col], df[lat_col]), crs="EPSG:4326")
 
     cuamps_gdf = point_gdf(_cuamps, 'Latitude', 'Longitude')
@@ -132,7 +136,8 @@ def perform_spatial_joins(_file, _cuamps, _taverns, _ecosystem, _farmers, _snap)
     farmers_gdf = point_gdf(_farmers, 'Latitude', 'Longitude')
     snap_gdf = point_gdf(_snap, 'Latitude', 'Longitude')
 
-    def join(gdf): return gpd.sjoin(gdf, _file, how='left', predicate='within').rename(columns={"neighborhood_right": "neighborhood"})
+    def join(gdf): 
+        return gpd.sjoin(gdf, _file, how='left', predicate='within').rename(columns={"neighborhood_right": "neighborhood"})
 
     return (
         join(cuamps_gdf),
@@ -141,7 +146,7 @@ def perform_spatial_joins(_file, _cuamps, _taverns, _ecosystem, _farmers, _snap)
         join(farmers_gdf),
         join(snap_gdf)
     )
-
+snap.head()
 cuamps_joined, taverns_joined, ecosystem_joined, farmers_joined, snap_joined = perform_spatial_joins(file, cuamps, taverns, ecosystem, farmers, snap)
 
 # FILTERS
@@ -158,7 +163,7 @@ with st.sidebar:
     show_farmers = st.checkbox("Farmers Markets", value=False)
     show_snap = st.checkbox("Grocery Stores (SNAP)", value=False)
     if show_snap:
-        all_store_types = sorted(snap["Store_Type"].unique())
+        all_store_types = sorted(snap["Store_Type"].dropna().astype(str).unique())
         selected_store_types = st.sidebar.multiselect("Select Store Types", all_store_types, default=all_store_types)
         filtered_snap = snap[snap["Store_Type"].isin(selected_store_types)]
     else:
