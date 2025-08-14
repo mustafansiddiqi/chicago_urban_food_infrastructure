@@ -161,7 +161,7 @@ with st.sidebar:
     show_ecosystem = st.checkbox("Ecosystem Sites", value=False)
     show_taverns = st.checkbox("Food Establishments", value=False)
     show_farmers = st.checkbox("Farmers Markets", value=False)
-    show_snap = st.checkbox("Grocery Stores (SNAP)", value=False)
+    show_snap = st.checkbox("Food Establishments Accepting SNAP", value=False)
     if show_snap:
         all_store_types = sorted(snap["Store_Type"].dropna().astype(str).unique())
         selected_store_types = st.sidebar.multiselect("Select Store Types", all_store_types, default=all_store_types)
