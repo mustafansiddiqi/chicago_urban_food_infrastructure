@@ -1,4 +1,3 @@
-from pickle import TRUE
 import geopandas as gpd
 import pandas as pd
 import folium
@@ -81,9 +80,11 @@ st.markdown('<p class="sub-title">An initiative from the Office of Mayor Brandon
 SHAPEFILE_PATH = "neighborhoods_shapefile.shp"
 CUAMPS_CSV_PATH = "cuamp_gardens geocoded.csv"
 FOOD_TAVERNS_CSV_PATH = "Food_Tavern_PackGoods_Current.csv"
-FOOD_ECOSYSTEM_CSV_PATH = "Food_Ecosystem_Data_2025.csv"
+DPD_SB_CSV_PATH = "Food_Ecosystem_Data_2025.csv"
 FARMERS_MARKETS_CSV_PATH = "Farmers_Markets.csv"
 SNAP_PATH = "SNAP.csv"
+DPD_COM_GRANTS = "DPD_Community_Grants.csv"
+NEW_OPP_PATH = "dpd_new_opp.csv"
 
 # CACHED DATA LOADERS
 @st.cache_resource
@@ -96,19 +97,21 @@ def load_shapefile():
 def load_csv_data():
     cuamps = pd.read_csv(CUAMPS_CSV_PATH, header=0)
     taverns = pd.read_csv(FOOD_TAVERNS_CSV_PATH, header=0)
-    ecosystem = pd.read_csv(FOOD_ECOSYSTEM_CSV_PATH, header=0)
+    small_business_dpd = pd.read_csv(DPD_SB_CSV_PATH, header=0)
     snap = pd.read_csv(SNAP_PATH, header=0)
     farmers = pd.read_csv(FARMERS_MARKETS_CSV_PATH, header=0)
-    return cuamps, taverns, ecosystem, farmers, snap
+    community_dpd = pd.read_csv(DPD_COM_GRANTS, header=0)
+    new_opp_dpd = pd.read_csv(NEW_OPP_PATH, header=0)
+    return cuamps, taverns, small_business_dpd, farmers, snap, community_dpd, new_opp_dpd
 
 # LOAD DATA
 file = load_shapefile()
-cuamps, taverns, ecosystem, farmers, snap = load_csv_data()
+cuamps, taverns, small_business_dpd, farmers, snap, community_dpd, new_opp_dpd = load_csv_data()
 
 # CLEAN & STANDARDIZE DATA
 cuamps["neighborhood"] = cuamps["neighborhood"].astype(str).str.strip().str.title()
 
-for df in [cuamps, taverns, ecosystem]:
+for df in [cuamps, taverns, small_business_dpd, community_dpd]:
     df['Latitude'] = pd.to_numeric(df['Latitude'], errors='coerce')
     df['Longitude'] = pd.to_numeric(df['Longitude'], errors='coerce')
     df.dropna(subset=['Latitude', 'Longitude'], inplace=True)
@@ -118,12 +121,15 @@ farmers['Longitude'] = pd.to_numeric(farmers['Longitude'], errors='coerce')
 farmers.dropna(subset=['Latitude', 'Longitude'], inplace=True)
 
 farmers['DCASE'] = farmers['DCASE'].astype(bool)
-cuamps['Food Producing'] = np.where(cuamps["food_producing"] == True, 'Yes', 'N/A')
 farmers['Support'] = np.where(farmers['DCASE'], "Supported by DCASE", "Not Supported")
 all_store_types = sorted(snap["Store_Type"].dropna().astype(str).unique())
 
+community_dpd['Latitude'] = pd.to_numeric(community_dpd['Latitude'], errors='coerce')
+community_dpd['Longitude'] = pd.to_numeric(community_dpd['Longitude'], errors='coerce')
+community_dpd.dropna(subset=['Latitude','Longitude'], inplace=True)
+
 @st.cache_data
-def perform_spatial_joins(_file, _cuamps, _taverns, _ecosystem, _farmers, _snap):
+def perform_spatial_joins(_file, _cuamps, _taverns, _small_business_dpd, _farmers, _snap, _community_dpd, _new_opp_dpd):
     def point_gdf(df, lat_col, lon_col):
         df[lat_col] = pd.to_numeric(df[lat_col], errors='coerce')
         df[lon_col] = pd.to_numeric(df[lon_col], errors='coerce')
@@ -132,9 +138,11 @@ def perform_spatial_joins(_file, _cuamps, _taverns, _ecosystem, _farmers, _snap)
 
     cuamps_gdf = point_gdf(_cuamps, 'Latitude', 'Longitude')
     taverns_gdf = point_gdf(_taverns, 'Latitude', 'Longitude')
-    ecosystem_gdf = point_gdf(_ecosystem, 'Latitude', 'Longitude')
+    small_business_dpd_gdf = point_gdf(_small_business_dpd, 'Latitude', 'Longitude')
     farmers_gdf = point_gdf(_farmers, 'Latitude', 'Longitude')
     snap_gdf = point_gdf(_snap, 'Latitude', 'Longitude')
+    community_dpd_gdf = point_gdf(_community_dpd, 'Latitude', 'Longitude')
+    new_opp_dpd_gdf = point_gdf(_new_opp_dpd, 'Latitude', 'Longitude')
 
     def join(gdf): 
         return gpd.sjoin(gdf, _file, how='left', predicate='within').rename(columns={"neighborhood_right": "neighborhood"})
@@ -142,12 +150,14 @@ def perform_spatial_joins(_file, _cuamps, _taverns, _ecosystem, _farmers, _snap)
     return (
         join(cuamps_gdf),
         join(taverns_gdf),
-        join(ecosystem_gdf),
+        join(small_business_dpd_gdf),
         join(farmers_gdf),
-        join(snap_gdf)
+        join(snap_gdf),
+        join(community_dpd_gdf),
+        join(new_opp_dpd_gdf)
     )
 snap.head()
-cuamps_joined, taverns_joined, ecosystem_joined, farmers_joined, snap_joined = perform_spatial_joins(file, cuamps, taverns, ecosystem, farmers, snap)
+cuamps_joined, taverns_joined, small_business_dpd_joined, farmers_joined, snap_joined, community_dpd_joined, new_opp_dpd_joined = perform_spatial_joins(file, cuamps, taverns, small_business_dpd, farmers, snap, community_dpd, new_opp_dpd)
 
 # FILTERS
 with st.sidebar:
@@ -155,21 +165,24 @@ with st.sidebar:
     all_neighborhoods = sorted(file["neighborhood"].dropna().unique())
     selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default= all_neighborhoods)
     show_wards = st.checkbox("Ward Labels", value=False)
-    
-
-    #show_gardens = st.checkbox("Community Gardens", value=False)
-    show_ecosystem = st.checkbox("Ecosystem Sites", value=False)
-    show_taverns = st.checkbox("Food Establishments", value=False)
+    show_taverns = st.checkbox("Food Establishments-BACP Licenses", value=False)
     show_farmers = st.checkbox("Farmers Markets", value=False)
-    show_snap = st.checkbox("Food Establishments Accepting SNAP", value=False)
+    show_snap = st.checkbox("SNAP Retailers", value=False)
     if show_snap:
         all_store_types = sorted(snap["Store_Type"].dropna().astype(str).unique())
         selected_store_types = st.sidebar.multiselect("Select Store Types", all_store_types, default=all_store_types)
         filtered_snap = snap[snap["Store_Type"].isin(selected_store_types)]
     else:
         filtered_snap = pd.DataFrame()
-
-    #selected_food = st.multiselect("Food Producing Gardens", ["Yes", "N/A"], default=["Yes", "N/A"]) if show_gardens else []
+    
+    show_grants = st.checkbox("DPD Grants", value=False)
+    show_small_business_dpd = False
+    show_dpd_community = False
+    show_new_opp_dpd = False
+    if show_grants:
+        show_small_business_dpd = st.checkbox("DPD Small Business Improvement Fund", value=False)
+        show_dpd_community = st.checkbox("DPD Community Development Grants", value=False)
+        show_new_opp_dpd = st.checkbox("New Opportunity Development Grants", value = False)
     tavern_types = taverns['License Name'].dropna().unique().tolist() if show_taverns else []
     selected_tavern_types = st.multiselect("License Type", tavern_types, default=tavern_types) if show_taverns else []
     dcase_options = ["Supported by DCASE", "Not Supported"] if show_farmers else []
@@ -190,22 +203,32 @@ def filter_taverns(_taverns_df, selected_types, neighborhoods):
     ]
 
 @st.cache_data
-def filter_ecosystem(_ecosystem_df, neighborhoods):
-    return _ecosystem_df[_ecosystem_df["neighborhood"].isin(neighborhoods)]
-
-@st.cache_data
 def filter_farmers(_farmers_df, selected_support, neighborhoods):
     return _farmers_df[
         (_farmers_df["Support"].isin(selected_support)) &
         (_farmers_df["neighborhood"].isin(neighborhoods))
     ]
 
+@st.cache_data
+def filter_small_business_dpd(_small_business_dpd_df, neighborhoods):
+    return _small_business_dpd_df[_small_business_dpd_df["neighborhood"].isin(neighborhoods)]
+
+@st.cache_data
+def filter_community_dpd(_community_dpd_df, neighborhoods): 
+    return _community_dpd_df[_community_dpd_df["neighborhood"].isin(neighborhoods)]
+
+@st.cache_data
+def filter_new_opp_dpd(_new_opp_dpd_df, neighborhoods): 
+    return _new_opp_dpd_df[_new_opp_dpd_df["neighborhood"].isin(neighborhoods)]
+
 # APPLY FILTERS
-#filtered_cuamps = cuamps_joined[(cuamps_joined["Food Producing"].isin(selected_food)) & (cuamps_joined["neighborhood"].isin(selected_neighborhoods))] if show_gardens else pd.DataFrame(columns=cuamps.columns)
 filtered_snap = filter_snap(snap_joined, selected_store_types, selected_neighborhoods) if show_snap else pd.DataFrame()
 filtered_taverns = filter_taverns(taverns_joined, selected_tavern_types, selected_neighborhoods) if show_taverns else pd.DataFrame()
-filtered_ecosystem = filter_ecosystem(ecosystem_joined, selected_neighborhoods) if show_ecosystem else pd.DataFrame()
 filtered_farmers = filter_farmers(farmers_joined, selected_dcase, selected_neighborhoods) if show_farmers else pd.DataFrame()
+filtered_small_business_dpd = filter_small_business_dpd(small_business_dpd_joined, selected_neighborhoods) if show_small_business_dpd else pd.DataFrame()
+filtered_dpd_community = filter_community_dpd(community_dpd_joined, selected_neighborhoods) if show_dpd_community else pd.DataFrame()
+filtered_new_opp = new_opp_dpd_joined[new_opp_dpd_joined["neighborhood"].isin(selected_neighborhoods)] if show_new_opp_dpd else pd.DataFrame()
+filtered_dpd = pd.concat([filtered_small_business_dpd, filtered_dpd_community, filtered_new_opp], ignore_index=True) if show_grants else pd.DataFrame()
 
 # DEFINE COLORS FOR FILTER TYPES
 license_colors = {
@@ -267,36 +290,8 @@ if show_wards and 'ward' in cuamps_joined.columns:
             icon=folium.DivIcon(html=f"<div style='font-size:10pt; font-weight:bold; color:black'>Ward {int(row['ward'])}</div>")
         ).add_to(base_map)
 
-# if show_gardens and not filtered_cuamps.empty:
-#     cluster = MarkerCluster(name="Community Gardens").add_to(base_map)
-#     for _, row in filtered_cuamps.iterrows():
-#         tooltip = f"{row['growing_site_name']} </b><br> Address:  {row.get('address', 'Address N/A')}"
-#         folium.CircleMarker(
-#             location=(row["Latitude"], row["Longitude"]),
-#             radius=5,
-#             color="green",
-#             fill=True,
-#             fill_opacity=0.6,
-#             popup=folium.Popup(f"<b>{row['growing_site_name']}</b><br>Food Producing: {row['Food Producing']}", max_width=300),
-#             tooltip=tooltip
-#         ).add_to(cluster)
-
-if show_ecosystem and not filtered_ecosystem.empty:
-    cluster = MarkerCluster(name="Ecosystem Sites").add_to(base_map)
-    for _, row in filtered_ecosystem.iterrows():
-        tooltip = f"{row['Primary']}</b><br><b>Address:</b> {row.get('Project Address', 'Address N/A')}"
-        folium.CircleMarker(
-            location=(row["Latitude"], row["Longitude"]),
-            radius=5,
-            color="orange",
-            fill=True,
-            fill_opacity=0.6,
-            popup=folium.Popup(f"<b>{row['Primary']}</b><br>TIF: {row['TIF District']}", max_width=300),
-            tooltip=tooltip
-        ).add_to(cluster)
-
 if show_taverns and not filtered_taverns.empty:
-    cluster = MarkerCluster(name="Taverns").add_to(base_map)
+    cluster = MarkerCluster(name="Food Establishments - BACP Licenses").add_to(base_map)
     for _, row in filtered_taverns.iterrows():
         license_name = row['License Name']
         color = license_colors.get(license_name, 'purple')
@@ -331,7 +326,7 @@ if show_farmers and not filtered_farmers.empty:
         ).add_to(cluster)
 
 if show_snap and not filtered_snap.empty:
-    cluster = MarkerCluster(name="Grocery Stores (SNAP)").add_to(base_map)
+    cluster = MarkerCluster(name="SNAP Retailers").add_to(base_map)
     for _, row in filtered_snap.iterrows():
         store_type = row.get("Store_Type", "Other")
         marker_color = snap_colors.get(store_type, "gray")
@@ -348,22 +343,38 @@ if show_snap and not filtered_snap.empty:
             popup=folium.Popup(f"<b>{row['Store_Name']}</b><br>{row.get('Address', 'Address N/A')}", max_width=300)
         ).add_to(cluster)
 
-# SUMMARY METRICS
+cluster = MarkerCluster(name="DPD Grants").add_to(base_map)
+dpd_colors = {"DPD Small Business Improvement Fund":"#3182bd","DPD Community Development Grants":"#e6550d","New Opportunity DPD Grants":"#33a02c"}
 
+for df, show, color_key in [(filtered_small_business_dpd, show_small_business_dpd, "DPD Small Business Improvement Fund"),
+                             (filtered_dpd_community, show_dpd_community, "DPD Community Development Grants"),
+                             (filtered_new_opp, show_new_opp_dpd, "New Opportunity DPD Grants")]:
+    if show and not df.empty:
+        for _, row in df.iterrows():
+            tooltip = f"{row.get('Project Name', row.get('Business Name','N/A'))}<br>Type: {row.get('Business Type','N/A')}<br>Address: {row.get('Address','N/A')}"
+            folium.CircleMarker(
+                location=[row['Latitude'], row['Longitude']],
+                radius=6,
+                color=dpd_colors[color_key],
+                fill=True,
+                fill_color=dpd_colors[color_key],
+                fill_opacity=0.7,
+                popup=folium.Popup(tooltip, max_width=300),
+                tooltip=tooltip
+            ).add_to(cluster)
+
+
+# SUMMARY METRICS
+dpd_count = len(filtered_dpd) if show_grants else 0
 st.markdown("<div class='metrics-row'>" +
     #f"<div class='metric-container'><h4><b>Total Gardens<b></h4><p><b>{len(filtered_cuamps)}<b></p></div>" +
-    f"<div class='metric-container'><h4><b>Ecosystem Sites</b></h4><p><b>{len(filtered_ecosystem)}</b></p></div>" +
-    f"<div class='metric-container'><h4><b>Food Establishments</b></h4><p><b>{len(filtered_taverns)}</b></p></div>" +
-    f"<div class='metric-container'><h4><b>Grocery Stores</b></h4><p><b>{len(filtered_snap)}</b></p></div>" +
+    f"<div class='metric-container'><h4><b>DPD Grants</b></h4><p><b>{dpd_count}</b></p></div>" +
+    f"<div class='metric-container'><h4><b>Food Establishments-BACP Licenses</b></h4><p><b>{len(filtered_taverns)}</b></p></div>" +
+    f"<div class='metric-container'><h4><b>SNAP Retailers</b></h4><p><b>{len(filtered_snap)}</b></p></div>" +
     f"<div class='metric-container'><h4><b>Farmers Markets</b></h4><p><b>{len(filtered_farmers)}</b></p></div>" +
     "</div>", unsafe_allow_html=True)
 #LEGEND
 legend_html_sections = []
-
-if show_ecosystem:
-    ecosystem_section = '<strong>Ecosystem Sites</strong><br>'
-    ecosystem_section += f'<i style="background:orange; width:10px; height:10px; float:left; margin-right:6px;"></i> Ecosystem Sites<br><br>'
-    legend_html_sections.append(ecosystem_section)
 
 if show_farmers:
     farmers_section = '<strong>Farmers Markets</strong><br>'
@@ -389,6 +400,19 @@ if show_taverns:
     tavern_section += '<br>'
     legend_html_sections.append(tavern_section)
 
+if show_small_business_dpd or show_dpd_community or show_new_opp_dpd:
+    legend_html_sections.append('<strong>CPD Grants</strong><br>')
+
+    for show_flag, key, label in [
+        (show_small_business_dpd, 'DPD Small Business Improvement Fund', 'DPD Small Business Improvement Fund'),
+        (show_dpd_community, 'DPD Community Development Grants', 'DPD Community Development Grants'),
+        (show_new_opp_dpd, 'New Opportunity DPD Grants', 'New Opportunity DPD Grants')
+    ]:
+        if show_flag:
+            legend_html_sections.append(
+                f'<i style="background:{dpd_colors[key]}; width:10px; height:10px; float:left; margin-right:6px;"></i> {label}<br>'
+            )
+
 if legend_html_sections:
     legend_html = f"""
     <div style="
@@ -409,5 +433,4 @@ if legend_html_sections:
     </div>
     """
     base_map.get_root().html.add_child(Element(legend_html))
-    
 st_folium(base_map, width=1000, height=700)
