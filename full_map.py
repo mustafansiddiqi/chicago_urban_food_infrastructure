@@ -363,7 +363,6 @@ for df, show, color_key in [(filtered_small_business_dpd, show_small_business_dp
                 tooltip=tooltip
             ).add_to(cluster)
 
-
 # SUMMARY METRICS
 dpd_count = len(filtered_dpd) if show_grants else 0
 st.markdown("<div class='metrics-row'>" +
@@ -433,4 +432,5 @@ if legend_html_sections:
     </div>
     """
     base_map.get_root().html.add_child(Element(legend_html))
+    
 st_folium(base_map, width=1000, height=700)
