@@ -366,12 +366,12 @@ for df, show, color_key in [(filtered_small_business_dpd, show_small_business_dp
 # SUMMARY METRICS
 dpd_count = len(filtered_dpd) if show_grants else 0
 st.markdown("<div class='metrics-row'>" +
-    #f"<div class='metric-container'><h4><b>Total Gardens<b></h4><p><b>{len(filtered_cuamps)}<b></p></div>" +
     f"<div class='metric-container'><h4><b>DPD Grants</b></h4><p><b>{dpd_count}</b></p></div>" +
     f"<div class='metric-container'><h4><b>Food Establishments-BACP Licenses</b></h4><p><b>{len(filtered_taverns)}</b></p></div>" +
     f"<div class='metric-container'><h4><b>SNAP Retailers</b></h4><p><b>{len(filtered_snap)}</b></p></div>" +
     f"<div class='metric-container'><h4><b>Farmers Markets</b></h4><p><b>{len(filtered_farmers)}</b></p></div>" +
     "</div>", unsafe_allow_html=True)
+
 #LEGEND
 legend_html_sections = []
 
@@ -432,5 +432,5 @@ if legend_html_sections:
     </div>
     """
     base_map.get_root().html.add_child(Element(legend_html))
-    
+
 st_folium(base_map, width=1000, height=700)
