@@ -3457,7 +3457,6 @@ OBJECTID_1,Join_Count,TARGET_FID,JOIN_FID,Record_ID,Store_Name,Store_Stre,Addito
 3172,0,3171,-1,1470326,Gas N Wash 50th & Central,4957 S Central Ave,,Chicago,IL,60638,"4957 S Central Ave, Chicago, IL, 60638",1528,COOK,Convenience Store,41.8022,-87.762199,,,245429,
 3221,0,3220,-1,1568211,Thorntons #221345 221345,823 W Lake St,,Hanover Park,IL,60133,"823 W Lake St, Hanover Park, IL, 60133",,COOK,Convenience Store,41.965176,-88.103157,,,249128,
 =======,,,,,,,,,,,,,,,,,,,,
-OBJECTID_1,Join_Count,TARGET_FID,JOIN_FID,Record_ID,Store_Name,Store_Stre,Additonal_,City,State,Zip_Code,Address,Zip4,County,Store_Type,Latitude,Longitude,Incentive_,Grantee_Na,ObjectId,CookCounty
 211,1,211,138,501689,Joe's Food & Liquor,3626 W Lawrence Ave,,Chicago,IL,60625,"3626 W Lawrence Ave, Chicago, IL, 60625",5684,COOK,Grocery Store,41.96841,-87.719284,,,16365,Albany Park
 288,1,288,138,394417,LEBANESE MEAT MARKET,4657 N Kedzie Ave,,Chicago,IL,60625,"4657 N Kedzie Ave, Chicago, IL, 60625",4426,COOK,Specialty Store,41.966373,-87.708138,,,22335,Albany Park
 433,1,433,138,534616,LINDO MICHOACAN,3142 W Lawrence Ave,,Chicago,IL,60625,"3142 W Lawrence Ave, Chicago, IL, 60625",4228,COOK,Super Store,41.968487,-87.707619,,,33987,Albany Park
