@@ -331,7 +331,6 @@ if show_snap and not filtered_snap.empty:
         store_type = row.get("Store_Type", "Other")
         marker_color = snap_colors.get(store_type, "gray")
         tooltip = f"{row['Store_Name']} — {row.get('Address', 'Address N/A')}"
-
         folium.CircleMarker(
             location=[row["Latitude"], row["Longitude"]],
             radius=5,
@@ -346,12 +345,19 @@ if show_snap and not filtered_snap.empty:
 cluster = MarkerCluster(name="DPD Grants").add_to(base_map)
 dpd_colors = {"DPD Small Business Improvement Fund":"#3182bd","DPD Community Development Grants":"#e6550d","New Opportunity DPD Grants":"#33a02c"}
 
-for df, show, color_key in [(filtered_small_business_dpd, show_small_business_dpd, "DPD Small Business Improvement Fund"),
-                             (filtered_dpd_community, show_dpd_community, "DPD Community Development Grants"),
-                             (filtered_new_opp, show_new_opp_dpd, "New Opportunity DPD Grants")]:
+for df, show, color_key in [
+    (filtered_small_business_dpd, show_small_business_dpd, "DPD Small Business Improvement Fund"),
+    (filtered_dpd_community, show_dpd_community, "DPD Community Development Grants"),
+    (filtered_new_opp, show_new_opp_dpd, "New Opportunity DPD Grants")
+]:
     if show and not df.empty:
         for _, row in df.iterrows():
-            tooltip = f"{row.get('Project Name', row.get('Business Name','N/A'))}<br>Type: {row.get('Business Type','N/A')}<br>Address: {row.get('Address','N/A')}"
+            if color_key == "DPD Small Business Improvement Fund":
+                tooltip = f"{row['Primary']}</b><br><b>Address:</b> {row.get('Project Address', 'Address N/A')}"
+            elif color_key == "DPD Community Development Grants":
+                tooltip = f"{row.get('Project Name', row.get('Business Name','N/A'))}<br>Address: {row.get('Address','N/A')}"
+            else:
+                tooltip = f"{row.get('Project Name', row.get('Business Name','N/A'))}<br>Address: {row.get('Address','N/A')}"
             folium.CircleMarker(
                 location=[row['Latitude'], row['Longitude']],
                 radius=6,
