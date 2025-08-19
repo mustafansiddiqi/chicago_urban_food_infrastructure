@@ -166,6 +166,9 @@ with st.sidebar:
     selected_neighborhoods = st.multiselect("Neighborhood", all_neighborhoods, default= all_neighborhoods)
     show_wards = st.checkbox("Ward Labels", value=False)
     show_taverns = st.checkbox("Food Establishments-BACP Licenses", value=False)
+    if show_taverns:
+        tavern_types = taverns['License Name'].dropna().unique().tolist() if show_taverns else []
+        selected_tavern_types = st.multiselect("License Type", tavern_types, default=tavern_types)
     show_farmers = st.checkbox("Farmers Markets", value=False)
     if show_farmers:
         dcase_options = ["Supported", "Not Supported"]
@@ -186,8 +189,7 @@ with st.sidebar:
         show_small_business_dpd = st.checkbox("DPD Small Business Improvement Fund", value=False)
         show_dpd_community = st.checkbox("DPD Community Development Grants", value=False)
         show_new_opp_dpd = st.checkbox("New Opportunity Development Grants", value = False)
-    tavern_types = taverns['License Name'].dropna().unique().tolist() if show_taverns else []
-    selected_tavern_types = st.multiselect("License Type", tavern_types, default=tavern_types) if show_taverns else []
+     
      
 
 @st.cache_data
@@ -383,6 +385,14 @@ st.markdown("<div class='metrics-row'>" +
 #LEGEND
 legend_html_sections = []
 
+if show_taverns:
+    tavern_section = '<strong>Food Establishments</strong><br>'
+    for license_type in selected_tavern_types:
+        color = license_colors.get(license_type, "black")
+        tavern_section += f'<i style="background:{color}; width:10px; height:10px; float:left; margin-right:6px;"></i> {license_type}<br>'
+    tavern_section += '<br>'
+    legend_html_sections.append(tavern_section)
+
 if show_farmers:
     farmers_section = '<strong>Farmers Markets</strong><br>'
     for support_type, color in dcase_color.items():
@@ -392,20 +402,12 @@ if show_farmers:
     legend_html_sections.append(farmers_section)
 
 if show_snap:
-    snap_section = '<strong>Grocery Stores</strong><br>'
+    snap_section = '<strong>SNAP Retailers</strong><br>'
     for store_type in selected_store_types:
         color = snap_colors.get(store_type, "black")
         snap_section += f'<i style="background:{color}; width:10px; height:10px; float:left; margin-right:6px;"></i> {store_type}<br>'
     snap_section += '<br>'
     legend_html_sections.append(snap_section)
-
-if show_taverns:
-    tavern_section = '<strong>Food Establishments</strong><br>'
-    for license_type in selected_tavern_types:
-        color = license_colors.get(license_type, "black")
-        tavern_section += f'<i style="background:{color}; width:10px; height:10px; float:left; margin-right:6px;"></i> {license_type}<br>'
-    tavern_section += '<br>'
-    legend_html_sections.append(tavern_section)
 
 if show_small_business_dpd or show_dpd_community or show_new_opp_dpd:
     legend_html_sections.append('<strong>CPD Grants</strong><br>')
