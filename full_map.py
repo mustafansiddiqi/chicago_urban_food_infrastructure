@@ -167,6 +167,9 @@ with st.sidebar:
     show_wards = st.checkbox("Ward Labels", value=False)
     show_taverns = st.checkbox("Food Establishments-BACP Licenses", value=False)
     show_farmers = st.checkbox("Farmers Markets", value=False)
+    if show_farmers:
+        dcase_options = ["Supported", "Not Supported"]
+        selected_dcase = st.multiselect("DCASE Support", dcase_options, default=dcase_options)
     show_snap = st.checkbox("SNAP Retailers", value=False)
     if show_snap:
         all_store_types = sorted(snap["Store_Type"].dropna().astype(str).unique())
@@ -185,8 +188,7 @@ with st.sidebar:
         show_new_opp_dpd = st.checkbox("New Opportunity Development Grants", value = False)
     tavern_types = taverns['License Name'].dropna().unique().tolist() if show_taverns else []
     selected_tavern_types = st.multiselect("License Type", tavern_types, default=tavern_types) if show_taverns else []
-    dcase_options = ["Supported by DCASE", "Not Supported"] if show_farmers else []
-    selected_dcase = st.multiselect("DCASE Support", dcase_options, default=dcase_options) if show_farmers else []
+     
 
 @st.cache_data
 def filter_snap(_snap_df, selected_store_types, neighborhoods):
